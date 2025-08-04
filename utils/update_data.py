@@ -3,7 +3,8 @@ import json
 import logging
 import threading
 from selenium import webdriver
-# Note: The Service class is no longer needed with automatic driver management.
+# We now need the Service class to specify the driver executable's path.
+from selenium.webdriver.chrome.service import Service
 from contextlib import contextmanager
 import time
 from selenium.webdriver.support.ui import WebDriverWait
@@ -30,21 +31,32 @@ scraper_lock = threading.Lock()
 def get_driver():
     """
     Provides a WebDriver instance with a clean setup and teardown.
-    This version uses selenium-manager to automatically handle the driver executable.
+
+    This version is modified to explicitly provide the path to the chromedriver
+    executable, which is necessary for platforms like linux/aarch64 where
+    Selenium's automatic driver management fails to find a compatible driver.
     """
+    driver = None  # Initialize driver to None
     try:
-        # We no longer need to specify a path. Selenium handles it for us.
+        # Define Chrome options for a headless setup
         options = webdriver.ChromeOptions()
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
 
-        # Initialize the driver without passing a service or path.
-        # Selenium-manager will find and set up the correct driver automatically.
-        driver = webdriver.Chrome(options=options)
+        # --- IMPORTANT CHANGE ---
+        # Instead of relying on Selenium-manager, we manually specify the path
+        # to the chromedriver executable.
+        # This path is common for systems where chromedriver is installed via a package manager.
+        # If your chromedriver is located elsewhere, update this path accordingly.
+        service = Service(executable_path='/usr/bin/chromedriver')
+
+        # Initialize the driver by passing the service object and options.
+        driver = webdriver.Chrome(service=service, options=options)
         yield driver
     finally:
-        if 'driver' in locals() and driver:
+        # Ensure the driver is quit even if an error occurs during initialization
+        if driver:
             driver.quit()
 
 
@@ -65,7 +77,8 @@ def update_data():
 
         scrapers = [
             ("galleria", scrape_galleria_flyer, "https://www.galleriasm.com/Home/prodview/dy9MFsYpCkOidpzOUKlHww"),
-            ("foodbasics", scrape_foodbasics_flyer, "https://www.foodbasics.ca/search?sortOrder=relevance&filter=%3Arelevance%3Adeal%3AFlyer+%26+Deals&fromEcomFlyer=true"),
+            ("foodbasics", scrape_foodbasics_flyer,
+             "https://www.foodbasics.ca/search?sortOrder=relevance&filter=%3Arelevance%3Adeal%3AFlyer+%26+Deals&fromEcomFlyer=true"),
             ("tnt_supermarket", scrape_tnt_flyer, "https://www.tntsupermarket.com/eng/weekly-special-er.html"),
             ("nofrills", scrape_nofrills_flyer, "https://www.nofrills.ca/en/deals/flyer?page=1")
         ]
