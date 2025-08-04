@@ -68,6 +68,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? `<p class="item-amount">${item.amount}</p>`
                     : '';
 
+                // --- START OF FIX ---
+                // Add the store name to the item data before creating the button
+                const itemWithStore = { ...item, store: storeName };
+                // --- END OF FIX ---
+
                 li.innerHTML = `
                     <img src="${item.image_url || 'https://via.placeholder.com/100?text=No+Image'}" alt="${item.name || item.item}" width="100">
                     <div class="item-details">
@@ -76,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${originalPriceHtml}
                         <p class="item-price">${item.price} <span class="price-unit">${item.unit !== 'N/A' ? item.unit : ''}</span></p>
                     </div>
-                    <button class="add-to-list-btn" data-item='${JSON.stringify(item)}'>Add to List</button>
+                    <button class="add-to-list-btn" data-item='${JSON.stringify(itemWithStore)}'>Add to List</button>
                 `;
                 listElement.appendChild(li);
             });
@@ -106,20 +111,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return acc;
         }, {});
 
-        // --- START OF CHANGES ---
+        // Store name mapping for consistent display
         const storeNameMapping = {
             'nofrills': 'No Frills',
             'tnt_supermarket': 'T&T Supermarket',
             'galleria': 'Galleria',
             'foodbasics': 'Food Basics'
         };
-        // --- END OF CHANGES ---
 
         // Render each store group
         for (const storeName in groupedItems) {
-            // --- START OF CHANGES ---
+            // Get the formatted name from the mapping, or fall back to a title-cased version
             let formattedStoreName = storeNameMapping[storeName] || storeName.replace('_', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-            // --- END OF CHANGES ---
 
             const storeHeading = document.createElement('h3');
             storeHeading.textContent = formattedStoreName;
