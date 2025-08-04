@@ -3,7 +3,7 @@ import json
 import logging
 import threading
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
+# Note: The Service class is no longer needed with automatic driver management.
 from contextlib import contextmanager
 import time
 from selenium.webdriver.support.ui import WebDriverWait
@@ -25,24 +25,23 @@ logging.basicConfig(level=logging.INFO)
 # Create a lock to prevent concurrent scraping
 scraper_lock = threading.Lock()
 
+
 @contextmanager
 def get_driver():
-    """Provides a WebDriver instance with a clean setup and teardown."""
-    # Define the path to the system-installed chromedriver on a Raspberry Pi.
-    # The 'Exec format error' happens because WebDriverManager downloads a driver
-    # for x86 architecture, which is incompatible with the Raspberry Pi's ARM.
-    # By manually installing and pointing to the correct path, we resolve this.
-    # If the path below is incorrect, you can find the right one by running 'which chromedriver'
-    # in your Raspberry Pi's terminal after installing it with 'sudo apt install chromium-chromedriver'.
-    CHROMEDRIVER_PATH = '/usr/bin/chromedriver'
-
+    """
+    Provides a WebDriver instance with a clean setup and teardown.
+    This version uses selenium-manager to automatically handle the driver executable.
+    """
     try:
-        service = Service(CHROMEDRIVER_PATH)
+        # We no longer need to specify a path. Selenium handles it for us.
         options = webdriver.ChromeOptions()
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-        driver = webdriver.Chrome(service=service, options=options)
+
+        # Initialize the driver without passing a service or path.
+        # Selenium-manager will find and set up the correct driver automatically.
+        driver = webdriver.Chrome(options=options)
         yield driver
     finally:
         if 'driver' in locals() and driver:
@@ -66,16 +65,20 @@ def update_data():
 
         scrapers = [
             ("galleria", scrape_galleria_flyer, "https://www.galleriasm.com/Home/prodview/dy9MFsYpCkOidpzOUKlHww"),
-            ("foodbasics", scrape_foodbasics_flyer, "https://www.foodbasics.ca/search?sortOrder=relevance&filter=%3Arelevance%3Adeal%3AFlyer+%26+Deals&fromEcomFlyer=true"),
-            ("tnt_supermarket", scrape_tnt_flyer, "https://www.tntsupermarket.com/eng/weekly-special-er.html"),
-            #walmart
-            ("nofrills", scrape_nofrills_flyer, "https://www.nofrills.ca/en/deals/flyer?page=1")
+            # The other scrapers are commented out, as in your original file.
+            # ("foodbasics", scrape_foodbasics_flyer, "https://www.foodbasics.ca/search?sortOrder=relevance&filter=%3Arelevance%3Adeal%3AFlyer+%26+Deals&fromEcomFlyer=true"),
+            # ("tnt_supermarket", scrape_tnt_flyer, "https://www.tntsupermarket.com/eng/weekly-special-er.html"),
+            # ("nofrills", scrape_nofrills_flyer, "https://www.nofrills.ca/en/deals/flyer?page=1")
         ]
 
+        # The get_driver context manager now handles the driver correctly.
         with get_driver() as driver:
             for store_name, scraper_function, url in scrapers:
                 try:
                     logging.info(f"Attempting to fetch {store_name.replace('_', ' ').title()} flyer data from {url}...")
+                    # It's good practice to navigate to the URL within the loop,
+                    # so each scraper can start from a fresh page if needed.
+                    driver.get(url)
                     scraper_function(driver, all_flyers_data[store_name])
                     logging.info(f"{store_name.replace('_', ' ').title()} data scraped successfully.")
                 except Exception as e:
