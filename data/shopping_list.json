@@ -1,0 +1,74 @@
+[
+  {
+    "image_url": "https://www.galleriasm.com/images/Product/452.jpg",
+    "name": "WHITE PEACHES 1LB",
+    "original_price": "$4.98",
+    "price": "$4.98",
+    "store": "Galleria",
+    "unit": "/lb",
+    "quantity": 1
+  },
+  {
+    "image_url": "https://www.galleriasm.com/images/Product/081652299127.jpg",
+    "name": "ASSI YOGURT DRINK PEACH FLAVOUR 1575ML",
+    "original_price": "$5.99",
+    "price": "$5.99",
+    "store": "Galleria",
+    "unit": "/pk",
+    "quantity": 1
+  },
+  {
+    "image_url": "https://www.galleriasm.com/images/Product/210232.jpg",
+    "name": "FRESH PORK BACK RIB 1LB",
+    "original_price": "N/A",
+    "price": "$8.98",
+    "store": "Galleria",
+    "unit": "/lb",
+    "quantity": 6
+  },
+  {
+    "image_url": "https://www.galleriasm.com/images/Product/8801118251122.jpg",
+    "name": "LOTTE CHOCOLATE FLAVORED ICE TUBE MULTI 130ML*6",
+    "original_price": "$8.99",
+    "price": "$8.99",
+    "store": "Galleria",
+    "unit": "/pk",
+    "quantity": 1
+  },
+  {
+    "image_url": "https://www.galleriasm.com/images/Product/8809713221205.jpg",
+    "name": "HAITAI TANKBOY ICE TUBE PEAR MULTI 120ML*5",
+    "original_price": "$6.99",
+    "price": "$6.99",
+    "store": "Galleria",
+    "unit": "/pk",
+    "quantity": 1
+  },
+  {
+    "image_url": "https://www.galleriasm.com/images/Product/8809713221243.jpg",
+    "name": "HAITAI ZELLUZOA ICE TUBE APPLE  MULTI 120ML*5",
+    "original_price": "$6.99",
+    "price": "$6.99",
+    "store": "Galleria",
+    "unit": "/pk",
+    "quantity": 1
+  },
+  {
+    "image_url": "https://www.galleriasm.com/images/Product/686234223387.jpg",
+    "name": "TROPICAL DELIGHT GUAVA NECTAR 473ML",
+    "original_price": "$3.99",
+    "price": "$3.99",
+    "store": "Galleria",
+    "unit": "/ea",
+    "quantity": 1
+  },
+  {
+    "image_url": "https://www.galleriasm.com/images/Product/686234123274.jpg",
+    "name": "TROPICAL DELIGHT GUAVA PINEAPPLE JUICE 473ML",
+    "original_price": "$3.99",
+    "price": "$3.99",
+    "store": "Galleria",
+    "unit": "/ea",
+    "quantity": 1
+  }
+]

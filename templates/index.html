@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Weekly Flyer Deals & Shopping List</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+</head>
+<body>
+
+<header>
+    <h1>Weekly Flyer Deals & Shopping List</h1>
+    <button id="update-data-btn">Update Flyer Data</button>
+</header>
+
+<main>
+    <div id="status-message"></div>
+    <div class="main-content">
+        <section class="flyers-container">
+            <div class="tabs">
+                <button class="tab-button active" data-store="galleria">Galleria</button>
+                <button class="tab-button" data-store="tnt-supermarket">T&T Supermarket</button>
+                <button class="tab-button" data-store="foodbasics">Food Basics</button>
+                <button class="tab-button" data-store="nofrills">No Frills</button>
+            </div>
+            <div id="flyer-content">
+                <ul id="galleria-list" class="flyer-list active"></ul>
+                <ul id="tnt-supermarket-list" class="flyer-list"></ul>
+                <ul id="foodbasics-list" class="flyer-list"></ul>
+                <ul id="nofrills-list" class="flyer-list"></ul>
+            </div>
+        </section>
+
+        <section id="shopping-list-container">
+            <h2>Your Shopping List</h2>
+            <ul id="shopping-list"></ul>
+            <button id="send-list-btn">Generate QR Code</button>
+            <div id="qr-container" style="margin-top: 1em;"></div>
+        </section>
+    </div>
+</main>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

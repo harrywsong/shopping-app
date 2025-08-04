@@ -1,0 +1,8 @@
+selenium~=4.34.2
+webdriver-manager~=4.0.2
+bs4~=0.0.2
+beautifulsoup4~=4.13.4
+qrcode~=8.2
+django-qrcode~=0.3
+Flask~=3.1.1
+requests~=2.32.4
