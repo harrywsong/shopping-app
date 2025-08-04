@@ -61,12 +61,16 @@ def manage_shopping_list():
 
     elif request.method == 'POST':
         item = request.json
-        if not item or 'name' not in item:
-            return jsonify({"error": "Invalid item data, 'name' key is missing"}), 400
+        if not item or 'name' not in item or 'store' not in item:
+            logging.error(f"Invalid item data received: {item}. Missing 'name' or 'store' key.")
+            return jsonify({"error": "Invalid item data, 'name' and 'store' keys are required"}), 400
+
+        logging.info(f"Received item to add from store '{item.get('store')}': {item.get('name')}")
 
         found = False
         for i in range(len(shopping_list)):
-            if shopping_list[i]['name'] == item['name']:
+            # Check for a match on both name and store to prevent adding the same item multiple times from different stores
+            if shopping_list[i]['name'] == item['name'] and shopping_list[i].get('store') == item.get('store'):
                 shopping_list[i]['quantity'] += 1
                 found = True
                 break
@@ -146,26 +150,33 @@ def generate_shopping_list_text():
         # Group items by store
         grouped_items = {}
         for item in shopping_list_data:
+            # --- START OF FIX ---
+            # Ensure the store key is always lowercase for consistent grouping and mapping
             store_key = item.get('store', 'unknown').lower()
             if store_key not in grouped_items:
                 grouped_items[store_key] = []
             grouped_items[store_key].append(item)
+            # --- END OF FIX ---
 
         formatted_list_parts = []
 
         # Order the stores for consistent output
         store_order = ["galleria", "tnt_supermarket", "foodbasics", "nofrills", "unknown"]
+        # Create a mapping for consistent store name display
+        store_name_mapping = {
+            "nofrills": "No Frills",
+            "tnt_supermarket": "T&T Supermarket",
+            "galleria": "Galleria",
+            "foodbasics": "Food Basics",
+            "unknown": "Other"
+        }
+
         for store_key in store_order:
             if store_key in grouped_items:
                 items = grouped_items[store_key]
 
-                # Format the store name for display
-                if store_key == "nofrills":
-                    store_name = "No Frills"
-                elif store_key == "tnt_supermarket":
-                    store_name = "T&T Supermarket"
-                else:
-                    store_name = store_key.replace('_', ' ').title()
+                # Format the store name for display using the new mapping
+                store_name = store_name_mapping.get(store_key, store_key.replace('_', ' ').title())
 
                 formatted_list_parts.append(f"{store_name}")
 
