@@ -177,4 +177,4 @@ def generate_qr():
 
 if __name__ == '__main__':
     os.makedirs(DATA_FOLDER, exist_ok=True)  # Ensure data folder exists
-    app.run(host='0.0.0.0', port=1234)
+    app.run(host='0.0.0.0', port=1972)
