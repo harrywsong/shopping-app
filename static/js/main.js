@@ -222,12 +222,13 @@ document.addEventListener('DOMContentLoaded', () => {
 document.getElementById('send-list-btn').addEventListener('click', async () => {
     try {
         const response = await fetch('/generate_qr');
-        const data = await response.json();
+        if (response.ok) {
+            const blob = await response.blob();
+            const qrUrl = URL.createObjectURL(blob);
 
-        if (data.qr_url) {
             const img = document.createElement('img');
-            img.src = data.qr_url;
-            img.alt = 'QR Code';
+            img.src = qrUrl;
+            img.alt = 'Shopping List QR Code';
             img.style.width = '200px';
 
             const container = document.getElementById('qr-container');
@@ -237,8 +238,8 @@ document.getElementById('send-list-btn').addEventListener('click', async () => {
             alert('Failed to generate QR code.');
         }
     } catch (err) {
-        console.error('Error sending list:', err);
-        alert('Error sending shopping list.');
+        console.error('Error generating QR code:', err);
+        alert('Error generating QR code.');
     }
 });
 

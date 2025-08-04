@@ -154,25 +154,20 @@ def generate_shopping_list_text():
 
 @app.route('/generate_qr')
 def generate_qr():
-    """Generates a QR code that encodes the pure text shopping list."""
+    """Generates a QR code that encodes the URL to the pure text shopping list."""
     try:
-        # Load and format the shopping list data
-        with open("data/shopping_list.json", "r", encoding="utf-8") as f:
-            shopping_list_data = json.load(f)
+        # Construct the URL for the plain text shopping list
+        full_url = request.host_url.rstrip('/') + "/api/shopping-list-text"
 
-        list_items = [f"- {item['quantity']}x {item['name']}" for item in shopping_list_data]
-        formatted_list_string = "\n".join(list_items)
-
-        # Generate QR code image from the formatted list string
-        img = qrcode.make(formatted_list_string)
-        img_path = "static/temp/shopping_list_qr.png"
-        os.makedirs(os.path.dirname(img_path), exist_ok=True)
-        img.save(img_path)
-
-        return jsonify({"qr_url": "/static/temp/shopping_list_qr.png"})
+        # Generate QR code image from the URL
+        img = qrcode.make(full_url)
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        buf.seek(0)
+        return send_file(buf, mimetype='image/png')
     except Exception as e:
         print(f"Error generating QR: {e}")
-        return jsonify({"error": "Could not generate QR code"}), 500
+        return "Could not generate QR code", 500
 
 
 if __name__ == '__main__':
