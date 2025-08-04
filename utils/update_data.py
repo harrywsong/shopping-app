@@ -4,7 +4,6 @@ import logging
 import threading
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 from contextlib import contextmanager
 import time
 from selenium.webdriver.support.ui import WebDriverWait
@@ -29,8 +28,16 @@ scraper_lock = threading.Lock()
 @contextmanager
 def get_driver():
     """Provides a WebDriver instance with a clean setup and teardown."""
+    # Define the path to the system-installed chromedriver on a Raspberry Pi.
+    # The 'Exec format error' happens because WebDriverManager downloads a driver
+    # for x86 architecture, which is incompatible with the Raspberry Pi's ARM.
+    # By manually installing and pointing to the correct path, we resolve this.
+    # If the path below is incorrect, you can find the right one by running 'which chromedriver'
+    # in your Raspberry Pi's terminal after installing it with 'sudo apt install chromium-chromedriver'.
+    CHROMEDRIVER_PATH = '/usr/lib/chromium-browser/chromedriver'
+
     try:
-        service = Service(ChromeDriverManager().install())
+        service = Service(CHROMEDRIVER_PATH)
         options = webdriver.ChromeOptions()
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
