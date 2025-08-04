@@ -65,10 +65,9 @@ def update_data():
 
         scrapers = [
             ("galleria", scrape_galleria_flyer, "https://www.galleriasm.com/Home/prodview/dy9MFsYpCkOidpzOUKlHww"),
-            # The other scrapers are commented out, as in your original file.
-            # ("foodbasics", scrape_foodbasics_flyer, "https://www.foodbasics.ca/search?sortOrder=relevance&filter=%3Arelevance%3Adeal%3AFlyer+%26+Deals&fromEcomFlyer=true"),
-            # ("tnt_supermarket", scrape_tnt_flyer, "https://www.tntsupermarket.com/eng/weekly-special-er.html"),
-            # ("nofrills", scrape_nofrills_flyer, "https://www.nofrills.ca/en/deals/flyer?page=1")
+            ("foodbasics", scrape_foodbasics_flyer, "https://www.foodbasics.ca/search?sortOrder=relevance&filter=%3Arelevance%3Adeal%3AFlyer+%26+Deals&fromEcomFlyer=true"),
+            ("tnt_supermarket", scrape_tnt_flyer, "https://www.tntsupermarket.com/eng/weekly-special-er.html"),
+            ("nofrills", scrape_nofrills_flyer, "https://www.nofrills.ca/en/deals/flyer?page=1")
         ]
 
         # The get_driver context manager now handles the driver correctly.
