@@ -72,16 +72,16 @@ def scrape_galleria_flyer(driver, flyers_data):
                 unit = 'N/A'
 
                 if price_box:
-                    # Find the new price
-                    new_price_element = price_box.find('span', class_='price')
-                    if new_price_element:
-                        new_price = new_price_element.get_text(strip=True)
+                    # Find all spans with class 'price' within the price box
+                    all_prices_spans = price_box.find_all('span', class_='price')
 
-                    # Find the old price
-                    old_price_element = price_box.find('span', class_='old-price')
-                    if old_price_element:
-                        old_price_text = old_price_element.find('span', class_='price').get_text(strip=True)
-                        old_price = old_price_text
+                    if len(all_prices_spans) > 1:
+                        # If there are multiple prices, the first is the original and the last is the sale price.
+                        old_price = all_prices_spans[0].get_text(strip=True)
+                        new_price = all_prices_spans[-1].get_text(strip=True)
+                    elif len(all_prices_spans) == 1:
+                        # If there's only one price, it's the current price.
+                        new_price = all_prices_spans[0].get_text(strip=True)
 
                     # Find the unit in the <small> tag
                     unit_element = price_box.find('small')
