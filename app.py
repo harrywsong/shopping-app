@@ -138,25 +138,53 @@ def generate_qr_with_content(filename):
 
 @app.route('/api/shopping-list-text')
 def generate_shopping_list_text():
-    """Generates the shopping list as a plain text file."""
+    """Generates the shopping list as a plain text file, grouped by store."""
     try:
         with open("data/shopping_list.json", "r", encoding="utf-8") as f:
             shopping_list_data = json.load(f)
 
-        list_items = []
+        # Group items by store
+        grouped_items = {}
         for item in shopping_list_data:
-            item_name = item.get('name') or item.get('item', 'Unknown Item')
-            quantity = item.get('quantity', 1)
-            price = item.get('price', 'N/A')
-            original_price = item.get('original_price', 'N/A')
-            unit = item.get('unit', '')
+            store_key = item.get('store', 'unknown').lower()
+            if store_key not in grouped_items:
+                grouped_items[store_key] = []
+            grouped_items[store_key].append(item)
 
-            price_info = f"{price} {unit}" if price != 'N/A' else 'N/A'
-            original_price_info = f" (Original: {original_price} {unit})" if original_price and original_price != 'N/A' else ''
+        formatted_list_parts = []
 
-            list_items.append(f"- {quantity}x {item_name} - {price_info}{original_price_info}")
+        # Order the stores for consistent output
+        store_order = ["galleria", "tnt_supermarket", "foodbasics", "nofrills", "unknown"]
+        for store_key in store_order:
+            if store_key in grouped_items:
+                items = grouped_items[store_key]
 
-        formatted_list_string = "\n".join(list_items)
+                # Format the store name for display
+                if store_key == "nofrills":
+                    store_name = "No Frills"
+                elif store_key == "tnt_supermarket":
+                    store_name = "T&T Supermarket"
+                else:
+                    store_name = store_key.replace('_', ' ').title()
+
+                formatted_list_parts.append(f"{store_name}")
+
+                for item in items:
+                    item_name = item.get('name') or item.get('item', 'Unknown Item')
+                    quantity = item.get('quantity', 1)
+                    price = item.get('price', 'N/A')
+                    original_price = item.get('original_price', 'N/A')
+                    unit = item.get('unit', '')
+
+                    price_info = f"{price} {unit}" if price != 'N/A' else 'N/A'
+                    original_price_info = f" (Original: {original_price} {unit})" if original_price and original_price != 'N/A' else ''
+
+                    list_item_string = f"- {quantity}x {item_name} - {price_info}{original_price_info}"
+                    formatted_list_parts.append(list_item_string)
+
+                formatted_list_parts.append("")  # Add a blank line between stores
+
+        formatted_list_string = "\n".join(formatted_list_parts).strip()
         return formatted_list_string, 200, {'Content-Type': 'text/plain; charset=utf-8'}
 
     except Exception as e:
