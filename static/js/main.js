@@ -106,12 +106,20 @@ document.addEventListener('DOMContentLoaded', () => {
             return acc;
         }, {});
 
+        // --- START OF CHANGES ---
+        const storeNameMapping = {
+            'nofrills': 'No Frills',
+            'tnt_supermarket': 'T&T Supermarket',
+            'galleria': 'Galleria',
+            'foodbasics': 'Food Basics'
+        };
+        // --- END OF CHANGES ---
+
         // Render each store group
         for (const storeName in groupedItems) {
-            let formattedStoreName = storeName.replace('_', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-            if (storeName === 'tnt_supermarket') {
-                formattedStoreName = 'T&T Supermarket';
-            }
+            // --- START OF CHANGES ---
+            let formattedStoreName = storeNameMapping[storeName] || storeName.replace('_', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            // --- END OF CHANGES ---
 
             const storeHeading = document.createElement('h3');
             storeHeading.textContent = formattedStoreName;
