@@ -34,7 +34,7 @@ def get_driver():
     # By manually installing and pointing to the correct path, we resolve this.
     # If the path below is incorrect, you can find the right one by running 'which chromedriver'
     # in your Raspberry Pi's terminal after installing it with 'sudo apt install chromium-chromedriver'.
-    CHROMEDRIVER_PATH = '/usr/lib/chromium-browser/chromedriver'
+    CHROMEDRIVER_PATH = '/usr/bin/chromedriver'
 
     try:
         service = Service(CHROMEDRIVER_PATH)
