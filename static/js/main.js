@@ -68,10 +68,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? `<p class="item-amount">${item.amount}</p>`
                     : '';
 
-                // --- START OF FIX ---
                 // Add the store name to the item data before creating the button
                 const itemWithStore = { ...item, store: storeName };
-                // --- END OF FIX ---
 
                 li.innerHTML = `
                     <img src="${item.image_url || 'https://via.placeholder.com/100?text=No+Image'}" alt="${item.name || item.item}" width="100">
@@ -164,6 +162,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const addItemToShoppingList = async (item) => {
+        // --- START OF NEW LOGGING ---
+        console.log('Sending item to server:', item);
+        // --- END OF NEW LOGGING ---
         try {
             await fetch('/api/shopping-list', {
                 method: 'POST',
