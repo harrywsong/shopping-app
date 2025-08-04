@@ -143,7 +143,19 @@ def generate_shopping_list_text():
         with open("data/shopping_list.json", "r", encoding="utf-8") as f:
             shopping_list_data = json.load(f)
 
-        list_items = [f"- {item['quantity']}x {item['name']}" for item in shopping_list_data]
+        list_items = []
+        for item in shopping_list_data:
+            item_name = item.get('name') or item.get('item', 'Unknown Item')
+            quantity = item.get('quantity', 1)
+            price = item.get('price', 'N/A')
+            original_price = item.get('original_price', 'N/A')
+            unit = item.get('unit', '')
+
+            price_info = f"{price} {unit}" if price != 'N/A' else 'N/A'
+            original_price_info = f" (Original: {original_price} {unit})" if original_price and original_price != 'N/A' else ''
+
+            list_items.append(f"- {quantity}x {item_name} - {price_info}{original_price_info}")
+
         formatted_list_string = "\n".join(list_items)
         return formatted_list_string, 200, {'Content-Type': 'text/plain; charset=utf-8'}
 
