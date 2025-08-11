@@ -1,12 +1,25 @@
 /* E:\codingprojects\shopping\static\css\styles.css */
 
 /* --- General and Layout --- */
+:root {
+    --primary-color: #3f51b5; /* A vibrant blue for key elements */
+    --secondary-color: #5a67d8; /* A slightly lighter blue for buttons */
+    --accent-color: #48bb78; /* A friendly green for positive actions */
+    --text-color: #2d3748; /* Dark, readable text */
+    --subtle-text-color: #718096; /* Lighter text for context */
+    --bg-light: #f0f4f8; /* A soft, light gray for the background */
+    --bg-card: #ffffff; /* White for content cards */
+    --border-color: #e2e8f0; /* Light gray for borders */
+    --shadow-md: 0 4px 15px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
 html, body {
     height: 100%;
     margin: 0;
     font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
-    background-color: #f0f4f8; /* Softer, lighter background */
-    color: #2d3748; /* Darker, more modern text color */
+    background-color: var(--bg-light);
+    color: var(--text-color);
     line-height: 1.6;
 }
 
@@ -28,10 +41,10 @@ main {
 header {
     text-align: center;
     margin-bottom: 2rem;
-    background-color: #ffffff;
+    background-color: var(--bg-card);
     padding: 1.5rem 2.5rem;
     border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-lg);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -40,7 +53,7 @@ header {
 }
 
 h1 {
-    color: #3f51b5;
+    color: var(--primary-color);
     margin: 0;
     font-size: 1.8rem;
     font-weight: 700;
@@ -58,12 +71,12 @@ h1 {
 }
 
 #update-data-btn {
-    background-color: #5a67d8;
+    background-color: var(--secondary-color);
     color: #ffffff;
 }
 
 #update-data-btn:hover {
-    background-color: #434190;
+    background-color: var(--primary-color);
     box-shadow: 0 6px 12px rgba(0,0,0,0.15);
     transform: translateY(-2px);
 }
@@ -72,36 +85,62 @@ h1 {
     text-align: center;
     margin: 1rem 0;
     font-weight: 600;
-    color: #4a5568;
+    color: var(--text-color);
+}
+
+/* --- Search Bar --- */
+.search-container {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1.5rem 2.5rem;
+    background-color: var(--bg-card);
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+}
+
+#search-input {
+    flex-grow: 1;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 50px;
+    outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#search-input:focus {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(90, 103, 216, 0.2);
 }
 
 /* --- Main Content Sections --- */
 .flyers-container {
     flex: 2;
-    background: #ffffff;
+    background: var(--bg-card);
     padding: 2.5rem;
     border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    max-height: calc(100vh - 12rem); /* Sets a maximum height to enable scrolling */
-    overflow-y: auto; /* Independent scrolling for the flyer list */
+    box-shadow: var(--shadow-lg);
+    max-height: calc(100vh - 12rem);
+    overflow-y: auto;
 }
 
 #shopping-list-container {
     flex: 1;
-    background: #ffffff;
+    background: var(--bg-card);
     padding: 2.5rem;
     border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    max-height: calc(100vh - 12rem); /* Sets a maximum height to enable scrolling */
-    overflow-y: auto; /* Independent scrolling for the shopping list */
+    box-shadow: var(--shadow-lg);
+    max-height: calc(100vh - 12rem);
+    overflow-y: auto;
 }
 
 h2 {
     font-size: 1.5rem;
-    color: #3f51b5;
+    color: var(--primary-color);
     margin-bottom: 1.5rem;
     font-weight: 600;
-    border-bottom: 2px solid #e2e8f0;
+    border-bottom: 2px solid var(--border-color);
     padding-bottom: 0.75rem;
 }
 
@@ -109,6 +148,7 @@ h2 {
 .tabs {
     display: flex;
     margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border-color);
 }
 
 .tab-button {
@@ -118,7 +158,7 @@ h2 {
     cursor: pointer;
     font-size: 1rem;
     font-weight: 600;
-    color: #718096;
+    color: var(--subtle-text-color);
     transition: all 0.3s ease;
     position: relative;
     top: 2px;
@@ -132,7 +172,7 @@ h2 {
     transform: translateX(-50%);
     width: 0;
     height: 3px;
-    background-color: #3f51b5;
+    background-color: var(--secondary-color);
     transition: width 0.3s ease-in-out;
 }
 
@@ -141,7 +181,7 @@ h2 {
 }
 
 .tab-button.active {
-    color: #3f51b5;
+    color: var(--primary-color);
 }
 
 .tab-button.active::after {
@@ -163,16 +203,16 @@ h2 {
 }
 
 .flyer-item {
-    background: #ffffff;
+    background: var(--bg-card);
     padding: 1.5rem;
     border-radius: 16px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-md);
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
     transition: transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border-color);
 }
 
 .flyer-item:hover {
@@ -198,21 +238,21 @@ h2 {
 
 .item-name {
     font-weight: 700;
-    color: #2d3748;
+    color: var(--text-color);
     margin: 0.5rem 0;
     font-size: 1.1rem;
 }
 
 .item-price {
     font-size: 1.4em;
-    color: #38a169;
+    color: var(--accent-color);
     font-weight: 700;
     margin: 0.5rem 0 1rem;
 }
 
 .original-price {
     font-size: 0.9em;
-    color: #718096;
+    color: var(--subtle-text-color);
     margin: 0;
 }
 
@@ -222,7 +262,7 @@ h2 {
 
 .add-to-list-btn {
     width: 100%;
-    background-color: #48bb78;
+    background-color: var(--accent-color);
     color: white;
     border: none;
     padding: 0.75rem 1rem;
@@ -248,7 +288,7 @@ h2 {
     gap: 1rem;
     align-items: center;
     padding: 1rem 0;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .shopping-list-item:last-child {
@@ -270,7 +310,7 @@ h2 {
 
 .shopping-list-item .item-store {
     font-size: 0.8em;
-    color: #718096;
+    color: var(--subtle-text-color);
 }
 
 .remove-item-btn {
@@ -303,7 +343,7 @@ h2 {
 #qr-container {
     text-align: center;
     padding: 1rem;
-    border: 2px dashed #cbd5e0;
+    border: 2px dashed var(--border-color);
     border-radius: 12px;
     margin-top: 2rem;
 }
@@ -317,5 +357,38 @@ h2 {
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+/* --- Responsive Design --- */
+@media (max-width: 1024px) {
+    .main-content {
+        flex-direction: column;
+    }
+    .flyers-container, #shopping-list-container {
+        max-height: none;
+        overflow-y: visible;
+    }
+    header {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1.5rem;
+    }
+    .tabs {
+        flex-wrap: wrap;
+        justify-content: center;
+        border-bottom: none;
+    }
+    .tab-button {
+        flex: 1 1 auto;
+        text-align: center;
+        padding: 0.75rem 0.5rem;
+        border-bottom: 2px solid transparent;
+    }
+    .tab-button.active::after {
+        content: none;
+    }
+    .tab-button.active {
+        border-bottom-color: var(--primary-color);
     }
 }

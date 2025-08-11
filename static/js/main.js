@@ -8,6 +8,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const nofrillsList = document.getElementById('nofrills-list');
     const shoppingList = document.getElementById('shopping-list');
     const tabButtons = document.querySelectorAll('.tab-button');
+    const searchInput = document.getElementById('search-input');
+    // const searchButton = document.getElementById('search-btn'); // Removed
+
+    let searchTimeout;
 
     // Function to handle tab switching
     tabButtons.forEach(button => {
@@ -21,9 +25,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    const fetchFlyerData = async () => {
+    const fetchFlyerData = async (query = '') => {
         try {
-            const response = await fetch('/api/flyers');
+            const url = query ? `/api/flyers?search=${encodeURIComponent(query)}` : '/api/flyers';
+            const response = await fetch(url);
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
@@ -221,6 +226,15 @@ document.addEventListener('DOMContentLoaded', () => {
             statusMessage.textContent = `An unexpected error occurred: ${error}`;
             statusMessage.style.color = 'red';
         }
+    });
+
+    // Real-time search functionality
+    searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            const query = searchInput.value.trim();
+            fetchFlyerData(query);
+        }, 300); // 300ms delay to avoid excessive API calls
     });
 
     // Use event delegation for "Add to List" buttons

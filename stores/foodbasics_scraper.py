@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 def scrape_foodbasics_flyer(driver, flyers_data):
     """
-    Scrapes all pages of the Food Basics weekly flyer using Selenium and BeautifulSoup.
+    Scrapes the Food Basics weekly flyer, limited to the first 20 pages or until there are no more items.
 
     Args:
         driver: The Selenium WebDriver instance.
@@ -22,8 +22,9 @@ def scrape_foodbasics_flyer(driver, flyers_data):
 
     base_url = "https://www.foodbasics.ca/search"
     page = 1
+    max_pages = 20  # Set the maximum number of pages to scrape
 
-    while True:
+    while page <= max_pages:
         # Construct paginated URL
         if page == 1:
             url = base_url + "?sortOrder=relevance&filter=%3Arelevance%3Adeal%3AFlyer+%26+Deals&fromEcomFlyer=true"

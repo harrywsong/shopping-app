@@ -49,6 +49,23 @@ def index():
 @app.route('/api/flyers')
 def get_flyers():
     flyers_data = load_flyer_data()
+    # Get the search query from the request, if available
+    search_query = request.args.get('search', '').lower()
+
+    if search_query:
+        filtered_data = {
+            "galleria": [],
+            "tnt_supermarket": [],
+            "foodbasics": [],
+            "nofrills": []
+        }
+        for store, items in flyers_data.items():
+            for item in items:
+                # Check if the item's name contains the search query
+                if search_query in item.get('name', '').lower():
+                    filtered_data[store].append(item)
+        return jsonify(filtered_data)
+
     return jsonify(flyers_data)
 
 

@@ -31,12 +31,9 @@ scraper_lock = threading.Lock()
 def get_driver():
     """
     Provides a WebDriver instance with a clean setup and teardown.
-
-    This version is modified to explicitly provide the path to the chromedriver
-    executable, which is necessary for platforms like linux/aarch64 where
-    Selenium's automatic driver management fails to find a compatible driver.
+    This version relies on Selenium-manager for automatic driver management.
     """
-    driver = None  # Initialize driver to None
+    driver = None
     try:
         # Define Chrome options for a headless setup
         options = webdriver.ChromeOptions()
@@ -44,18 +41,12 @@ def get_driver():
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
 
-        # --- IMPORTANT CHANGE ---
-        # Instead of relying on Selenium-manager, we manually specify the path
-        # to the chromedriver executable.
-        # This path is common for systems where chromedriver is installed via a package manager.
-        # If your chromedriver is located elsewhere, update this path accordingly.
-        service = Service(executable_path='/usr/bin/chromedriver')
+        # Initialize the driver. Selenium-manager will automatically find and
+        # manage the correct driver executable for the host OS (Windows, Linux, etc.).
+        driver = webdriver.Chrome(options=options)
 
-        # Initialize the driver by passing the service object and options.
-        driver = webdriver.Chrome(service=service, options=options)
         yield driver
     finally:
-        # Ensure the driver is quit even if an error occurs during initialization
         if driver:
             driver.quit()
 
