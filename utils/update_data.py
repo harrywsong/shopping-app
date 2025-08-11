@@ -1,50 +1,36 @@
-# E:\codingprojects\shopping\utils\update_data.py
 import json
 import logging
-import threading
 from selenium import webdriver
-# We now need the Service class to specify the driver executable's path.
 from selenium.webdriver.chrome.service import Service
 from contextlib import contextmanager
-import time
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
-from bs4 import BeautifulSoup
 import os
-
-# Assuming these scraper functions exist and take a driver object and a data list
-# as arguments to append results.
+from webdriver_manager.chrome import ChromeDriverManager
 from stores.galleria_scraper import scrape_galleria_flyer
 from stores.foodbasics_scraper import scrape_foodbasics_flyer
 from stores.tnt_scraper import scrape_tnt_flyer
-# from stores.hmart_scraper import scrape_hmart_flyer
 from stores.nofrills_scraper import scrape_nofrills_flyer
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Create a lock to prevent concurrent scraping
-scraper_lock = threading.Lock()
+DATA_FOLDER = 'data'
+os.makedirs(DATA_FOLDER, exist_ok=True)
 
 
 @contextmanager
 def get_driver():
     """
     Provides a WebDriver instance with a clean setup and teardown.
-    This version relies on Selenium-manager for automatic driver management.
     """
     driver = None
     try:
-        # Define Chrome options for a headless setup
         options = webdriver.ChromeOptions()
         options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--window-size=1920,1080")
 
-        # Initialize the driver. Selenium-manager will automatically find and
-        # manage the correct driver executable for the host OS (Windows, Linux, etc.).
-        driver = webdriver.Chrome(options=options)
-
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
         yield driver
     finally:
         if driver:
@@ -53,52 +39,52 @@ def get_driver():
 
 def update_data():
     """
-    Main function to run all scrapers and update the data file.
-    The function handles scraper calls with a shared WebDriver instance and
-    gracefully handles errors from individual scrapers.
+    Runs all scrapers sequentially using a single WebDriver instance and saves data to a JSON file.
     """
-    with scraper_lock:
-        logging.info("Starting data collection...")
-        all_flyers_data = {
-            "galleria": [],
-            "tnt_supermarket": [],
-            "foodbasics": [],
-            "nofrills": []
-        }
+    logging.info("Starting data collection...")
+    all_flyers_data = {
+        "galleria": [],
+        "tnt_supermarket": [],
+        "foodbasics": [],
+        "nofrills": []
+    }
 
-        scrapers = [
-            ("galleria", scrape_galleria_flyer, "https://www.galleriasm.com/Home/prodview/dy9MFsYpCkOidpzOUKlHww"),
-            ("foodbasics", scrape_foodbasics_flyer,
-             "https://www.foodbasics.ca/search?sortOrder=relevance&filter=%3Arelevance%3Adeal%3AFlyer+%26+Deals&fromEcomFlyer=true"),
-            ("tnt_supermarket", scrape_tnt_flyer, "https://www.tntsupermarket.com/eng/weekly-special-er.html"),
-            ("nofrills", scrape_nofrills_flyer, "https://www.nofrills.ca/en/deals/flyer?page=1")
-        ]
-
-        # The get_driver context manager now handles the driver correctly.
-        with get_driver() as driver:
-            for store_name, scraper_function, url in scrapers:
-                try:
-                    logging.info(f"Attempting to fetch {store_name.replace('_', ' ').title()} flyer data from {url}...")
-                    # It's good practice to navigate to the URL within the loop,
-                    # so each scraper can start from a fresh page if needed.
-                    driver.get(url)
-                    scraper_function(driver, all_flyers_data[store_name])
-                    logging.info(f"{store_name.replace('_', ' ').title()} data scraped successfully.")
-                except Exception as e:
-                    logging.error(f"Error scraping {store_name.replace('_', ' ').title()}: {e}")
-
+    with get_driver() as driver:
+        # Galleria Scraper
         try:
-            # Create the 'data' directory if it doesn't exist
-            os.makedirs('data', exist_ok=True)
-            # Construct the full path to the flyers.json file
-            file_path = os.path.join('data', 'flyers.json')
-
-            with open(file_path, 'w', encoding='utf-8') as f:
-                json.dump(all_flyers_data, f, ensure_ascii=False, indent=2)
-            logging.info("Data collection complete. flyers.json has been updated.")
+            logging.info("Attempting to fetch Galleria flyer data...")
+            scrape_galleria_flyer(driver, all_flyers_data["galleria"])
         except Exception as e:
-            logging.error(f"Error writing to {file_path}: {e}")
+            logging.error(f"Error scraping Galleria: {e}")
 
+        # # Food Basics Scraper
+        # try:
+        #     logging.info("Attempting to fetch Foodbasics flyer data...")
+        #     scrape_foodbasics_flyer(driver, all_flyers_data["foodbasics"])
+        # except Exception as e:
+        #     logging.error(f"Error scraping Foodbasics: {e}")
+        #
+        # # T&T Supermarket Scraper
+        # try:
+        #     logging.info("Attempting to fetch Tnt Supermarket flyer data...")
+        #     scrape_tnt_flyer(driver, all_flyers_data["tnt_supermarket"])
+        # except Exception as e:
+        #     logging.error(f"Error scraping Tnt Supermarket: {e}")
+
+        # No Frills Scraper
+        try:
+            logging.info("Attempting to fetch No Frills flyer data...")
+            scrape_nofrills_flyer(driver, all_flyers_data["nofrills"])
+        except Exception as e:
+            logging.error(f"Error scraping No Frills: {e}")
+
+    try:
+        file_path = os.path.join(DATA_FOLDER, 'flyers.json')
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(all_flyers_data, f, ensure_ascii=False, indent=2)
+        logging.info("Data collection complete. flyers.json has been updated.")
+    except Exception as e:
+        logging.error(f"Error writing to {file_path}: {e}")
 
 if __name__ == '__main__':
     update_data()

@@ -1,112 +1,214 @@
 // E:\codingprojects\shopping\static\js\main.js
-document.addEventListener('DOMContentLoaded', () => {
-    const updateBtn = document.getElementById('update-data-btn');
-    const statusMessage = document.getElementById('status-message');
-    const galleriaList = document.getElementById('galleria-list');
-    const tntList = document.getElementById('tnt-supermarket-list');
-    const foodbasicsList = document.getElementById('foodbasics-list');
-    const nofrillsList = document.getElementById('nofrills-list');
-    const shoppingList = document.getElementById('shopping-list');
-    const tabButtons = document.querySelectorAll('.tab-button');
+
+document.addEventListener('DOMContentLoaded', async () => {
     const searchInput = document.getElementById('search-input');
-    // const searchButton = document.getElementById('search-btn'); // Removed
+    const tabsContainer = document.querySelector('.tabs');
+    const tabContent = document.querySelector('.tab-content');
+    const statusMessage = document.getElementById('status-message');
+    const shoppingListToggleBtn = document.getElementById('shopping-list-toggle');
+    const closeShoppingListBtn = document.getElementById('close-shopping-list');
+    const shoppingListUl = document.getElementById('shopping-list');
+    const clearListBtn = document.getElementById('clear-list-btn');
+    const sendListBtn = document.getElementById('send-list-btn');
+    const updateDataBtn = document.getElementById('update-data-btn');
+    const cartCountSpan = document.getElementById('cart-count');
+    const darkModeToggle = document.getElementById('dark-mode-toggle');
+    const gridViewBtn = document.getElementById('grid-view-btn');
+    const listViewBtn = document.getElementById('list-view-btn');
+    const textListModal = document.getElementById('text-list-modal');
+    const textListArea = document.getElementById('text-list-area');
+    const closeTextModalBtn = document.querySelector('.close-modal');
+    const copyTextBtn = document.getElementById('copy-text-btn');
 
-    let searchTimeout;
+    let allFlyers = {};
+    let shoppingList = [];
+    let activeStore = null;
 
-    // Function to handle tab switching
-    tabButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            document.querySelector('.tab-button.active').classList.remove('active');
-            button.classList.add('active');
+    // Dark Mode Toggle
+    const isDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (isDarkMode) {
+        document.documentElement.classList.add('dark-mode');
+    }
 
-            document.querySelector('.flyer-list.active').classList.remove('active');
-            const targetListId = button.getAttribute('data-store') + '-list';
-            document.getElementById(targetListId).classList.add('active');
-        });
+    darkModeToggle.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark-mode');
+        const newDarkModeState = document.documentElement.classList.contains('dark-mode');
+        localStorage.setItem('darkMode', newDarkModeState);
     });
 
-    const fetchFlyerData = async (query = '') => {
+    // View Mode Toggles
+    const currentViewMode = localStorage.getItem('viewMode') || 'grid';
+    if (currentViewMode === 'list') {
+        gridViewBtn.classList.remove('active');
+        listViewBtn.classList.add('active');
+    }
+
+    gridViewBtn.addEventListener('click', () => {
+        localStorage.setItem('viewMode', 'grid');
+        gridViewBtn.classList.add('active');
+        listViewBtn.classList.remove('active');
+        const activeList = document.querySelector('.flyer-list.active');
+        if (activeList) {
+            activeList.classList.remove('list-view');
+        }
+    });
+
+    listViewBtn.addEventListener('click', () => {
+        localStorage.setItem('viewMode', 'list');
+        listViewBtn.classList.add('active');
+        gridViewBtn.classList.remove('active');
+        const activeList = document.querySelector('.flyer-list.active');
+        if (activeList) {
+            activeList.classList.add('list-view');
+        }
+    });
+
+    // Shopping List Sidebar Toggle
+    const toggleShoppingList = () => {
+        document.body.classList.toggle('shopping-list-open');
+    };
+
+    shoppingListToggleBtn.addEventListener('click', toggleShoppingList);
+    closeShoppingListBtn.addEventListener('click', toggleShoppingList);
+
+    const fetchFlyers = async (query = '') => {
+        statusMessage.textContent = 'Loading flyers...';
+        statusMessage.style.display = 'block';
         try {
-            const url = query ? `/api/flyers?search=${encodeURIComponent(query)}` : '/api/flyers';
-            const response = await fetch(url);
+            const response = await fetch(`/api/flyers?search=${query}`);
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
-            const data = await response.json();
-            renderFlyers(data);
+            allFlyers = await response.json();
+            renderTabs();
+            const storeToRender = activeStore || Object.keys(allFlyers)[0];
+            renderFlyers(storeToRender, query);
+            statusMessage.style.display = 'none';
         } catch (error) {
-            console.error('Error fetching flyer data:', error);
+            console.error('Failed to fetch flyers:', error);
+            statusMessage.textContent = 'Failed to load flyers. Please try again later.';
         }
     };
 
-    const fetchShoppingList = async () => {
+    const renderTabs = () => {
+        let storeTabsContainer = document.querySelector('.store-tabs-container');
+        if (!storeTabsContainer) {
+            storeTabsContainer = document.createElement('div');
+            storeTabsContainer.classList.add('store-tabs-container');
+            tabsContainer.prepend(storeTabsContainer);
+        }
+        storeTabsContainer.innerHTML = '';
+
+        Object.keys(allFlyers).forEach((store, index) => {
+            const tabButton = document.createElement('button');
+            tabButton.classList.add('tab-button');
+            tabButton.textContent = store.replace(/_/g, ' ').toUpperCase();
+            tabButton.dataset.store = store;
+            if (store === activeStore || (!activeStore && index === 0)) {
+                tabButton.classList.add('active');
+                activeStore = store;
+            }
+            tabButton.addEventListener('click', () => {
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                tabButton.classList.add('active');
+                activeStore = store;
+                renderFlyers(store, searchInput.value);
+            });
+            storeTabsContainer.appendChild(tabButton);
+        });
+    };
+
+// E:\codingprojects\shopping\static\js\main.js
+
+const renderFlyers = (store, query) => {
+    tabContent.innerHTML = '';
+    const flyerList = document.createElement('ul');
+    flyerList.classList.add('flyer-list', 'active');
+
+    const currentViewMode = localStorage.getItem('viewMode') || 'grid';
+    if (currentViewMode === 'list') {
+        flyerList.classList.add('list-view');
+    }
+
+    let items = allFlyers[store] || [];
+    if (query) {
+        items = items.filter(item => item.name && item.name.toLowerCase().includes(query.toLowerCase()));
+    }
+
+    if (items.length === 0) {
+        statusMessage.textContent = `No flyers available for ${store.replace(/_/g, ' ').toUpperCase()}.`;
+        statusMessage.style.display = 'block';
+        return;
+    } else {
+        statusMessage.style.display = 'none';
+    }
+
+    items.forEach(item => {
+        item.id = `${store}-${item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+
+        const flyerItem = document.createElement('li');
+        flyerItem.classList.add('flyer-item');
+
+        let priceHtml = '';
+        let originalPriceHtml = '';
+        let unit = (item.unit && item.unit !== 'N/A') ? ` ${item.unit}` : '';
+
+        // Check if a sale price exists (if price and original_price are different)
+        const isOnSale = (item.price && item.original_price && item.price !== item.original_price);
+
+        if (item.price && item.price !== 'N/A') {
+            priceHtml = `<p class="item-price">${item.price}${unit}</p>`;
+            if (isOnSale) {
+                originalPriceHtml = `<p class="original-price">${item.original_price}${unit}</p>`;
+            }
+        } else if (item.original_price && item.original_price !== 'N/A') {
+            priceHtml = `<p class="regular-price-list">${item.original_price}${unit}</p>`;
+        }
+
+        flyerItem.innerHTML = `
+            <div class="image-container">
+                <img src="${item.image_url || ''}" alt="${item.name || ''}" loading="lazy">
+            </div>
+            <div class="item-info">
+                <div>
+                    <h3>${item.name || ''}</h3>
+                </div>
+                <div class="price-and-button-container">
+                    ${priceHtml}
+                    ${originalPriceHtml}
+                    ${store === 'nofrills' && item.details ? `<p class="item-details-info">${item.details}</p>` : ''}
+                    <button class="add-to-list-btn" data-id="${item.id}" data-item='${JSON.stringify(item)}'>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                            <line x1="3" x2="21" y1="6" y2="6"></line>
+                            <path d="M16 10a4 4 0 0 1-8 0"></path>
+                        </svg>
+                        Add to List
+                    </button>
+                </div>
+            </div>
+        `;
+        flyerList.appendChild(flyerItem);
+    });
+    tabContent.appendChild(flyerList);
+};const fetchShoppingList = async () => {
         try {
             const response = await fetch('/api/shopping-list');
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            const data = await response.json();
-            renderShoppingList(data);
+            shoppingList = await response.json();
+            renderShoppingList();
         } catch (error) {
-            console.error('Error fetching shopping list:', error);
+            console.error('Failed to fetch shopping list:', error);
         }
     };
 
-    const renderFlyers = (data) => {
-        // A helper function to render items for a specific list
-        const renderList = (listElement, items, storeName) => {
-            listElement.innerHTML = '';
-            if (!items || items.length === 0) {
-                listElement.innerHTML = '<p>No items found.</p>';
-                return;
-            }
-            items.forEach(item => {
-                const li = document.createElement('li');
-                li.classList.add('flyer-item');
-
-                const originalPriceHtml = item.original_price && item.original_price !== 'N/A'
-                    ? `<p class="original-price">Original: <span class="strikethrough">${item.original_price} ${item.unit !== 'N/A' ? item.unit : ''}</span></p>`
-                    : '';
-
-                // Conditionally add the amount for Food Basics items
-                const amountHtml = (storeName === 'foodbasics' && item.amount && item.amount !== 'N/A')
-                    ? `<p class="item-amount">${item.amount}</p>`
-                    : '';
-
-                // Add the store name to the item data before creating the button
-                const itemWithStore = { ...item, store: storeName };
-
-                li.innerHTML = `
-                    <img src="${item.image_url || 'https://via.placeholder.com/100?text=No+Image'}" alt="${item.name || item.item}" width="100">
-                    <div class="item-details">
-                        <p class="item-name">${item.name || item.item}</p>
-                        ${amountHtml}
-                        ${originalPriceHtml}
-                        <p class="item-price">${item.price} <span class="price-unit">${item.unit !== 'N/A' ? item.unit : ''}</span></p>
-                    </div>
-                    <button class="add-to-list-btn" data-item='${JSON.stringify(itemWithStore)}'>Add to List</button>
-                `;
-                listElement.appendChild(li);
-            });
-        };
-
-        // Render items for each store, passing the store name
-        renderList(galleriaList, data.galleria, 'galleria');
-        renderList(tntList, data.tnt_supermarket, 'tnt_supermarket');
-        renderList(foodbasicsList, data.foodbasics, 'foodbasics');
-        renderList(nofrillsList, data.nofrills, 'nofrills');
-    };
-
-    const renderShoppingList = (items) => {
-        shoppingList.innerHTML = ''; // Clear the current list
-        if (items.length === 0) {
-            shoppingList.innerHTML = '<p>Your shopping list is empty.</p>';
-            return;
-        }
-
-        // Group items by store
-        const groupedItems = items.reduce((acc, item) => {
-            const store = item.store;
+const renderShoppingList = () => {
+    shoppingListUl.innerHTML = '';
+    let totalItems = 0;
+    if (shoppingList.length === 0) {
+        shoppingListUl.innerHTML = '<li class="empty-list-message">Your shopping list is empty.</li>';
+    } else {
+        const itemsByStore = shoppingList.reduce((acc, item) => {
+            const store = item.store || 'Uncategorized';
             if (!acc[store]) {
                 acc[store] = [];
             }
@@ -114,163 +216,252 @@ document.addEventListener('DOMContentLoaded', () => {
             return acc;
         }, {});
 
-        // Store name mapping for consistent display
-        const storeNameMapping = {
-            'nofrills': 'No Frills',
-            'tnt_supermarket': 'T&T Supermarket',
-            'galleria': 'Galleria',
-            'foodbasics': 'Food Basics'
-        };
+        for (const store in itemsByStore) {
+            const storeHeader = document.createElement('h5');
+            storeHeader.classList.add('store-header');
+            storeHeader.textContent = store.replace(/_/g, ' ').toUpperCase();
+            shoppingListUl.appendChild(storeHeader);
 
-        // Render each store group
-        for (const storeName in groupedItems) {
-            // Get the formatted name from the mapping, or fall back to a title-cased version
-            let formattedStoreName = storeNameMapping[storeName] || storeName.replace('_', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-
-            const storeHeading = document.createElement('h3');
-            storeHeading.textContent = formattedStoreName;
-            shoppingList.appendChild(storeHeading);
-
-            const storeList = document.createElement('ul');
-            storeList.classList.add('store-group-list');
-
-            groupedItems[storeName].forEach(item => {
-                const originalPriceHtml = item.original_price && item.original_price !== 'N/A'
-                    ? `<p class="original-price">Original: <span class="strikethrough">${item.original_price} ${item.unit !== 'N/A' ? item.unit : ''}</span></p>`
-                    : '';
-
+            itemsByStore[store].forEach(item => {
                 const li = document.createElement('li');
                 li.classList.add('shopping-list-item');
+
+                // Revised Price Logic for Shopping List
+                let priceHtml = '';
+                let originalPriceHtml = '';
+                let unit = (item.unit && item.unit !== 'N/A') ? ` ${item.unit}` : '';
+
+                if (item.price && item.price !== 'N/A') {
+                    priceHtml = `<span class="sale-price">${item.price}${unit}</span>`;
+                    if (item.original_price && item.original_price !== 'N/A' && item.original_price !== item.price) {
+                        originalPriceHtml = `<p class="original-price-strikethrough">${item.original_price}${unit}</p>`;
+                    }
+                } else if (item.original_price && item.original_price !== 'N/A') {
+                    priceHtml = `<span class="regular-price">${item.original_price}${unit}</span>`;
+                }
+
                 li.innerHTML = `
-                    <img src="${item.image_url || 'https://via.placeholder.com/50?text=No+Image'}" alt="${item.name}" width="50">
+                    <div class="item-image-container">
+                        <img src="${item.image_url || ''}" alt="${item.name || ''}" class="item-image">
+                    </div>
                     <div class="item-details">
-                        <p>${item.quantity}x - ${item.name || item.item}</p>
-                        ${originalPriceHtml}
-                        <p class="item-price">${item.price} <span class="price-unit">${item.unit !== 'N/A' ? item.unit : ''}</span></p>
+                        <h4>${item.name || ''}</h4>
+                        <div class="price-info">
+                            ${priceHtml}
+                            ${originalPriceHtml}
+                        </div>
+                        ${store === 'nofrills' && item.details ? `<p class="item-details-info">${item.details}</p>` : ''}
+                        <p>Quantity: ${item.quantity || 1}</p>
                     </div>
-                    <div class="item-actions">
-                        <button class="remove-item-btn" data-item-name="${item.name}">Remove</button>
-                    </div>
+                    <button class="remove-btn" data-id="${item.id}">&times;</button>
                 `;
-                storeList.appendChild(li);
+                shoppingListUl.appendChild(li);
+                totalItems += parseInt(item.quantity, 10) || 0;
             });
-            shoppingList.appendChild(storeList);
         }
-
-        // Add event listeners to the new remove buttons using event delegation
-        document.addEventListener('click', (event) => {
-            if (event.target.classList.contains('remove-item-btn')) {
-                const itemName = event.target.getAttribute('data-item-name');
-                removeShoppingListItem(itemName);
-            }
-        });
-    };
-
+    }
+    cartCountSpan.textContent = totalItems;
+};
     const addItemToShoppingList = async (item) => {
-        // --- START OF NEW LOGGING ---
-        console.log('Sending item to server:', item);
-        // --- END OF NEW LOGGING ---
+        console.log('addItemToShoppingList called with:', item);
         try {
-            await fetch('/api/shopping-list', {
+            const existingItemIndex = shoppingList.findIndex(i => i.id === item.id);
+
+            if (existingItemIndex !== -1) {
+                const currentQuantity = parseInt(shoppingList[existingItemIndex].quantity, 10) || 0;
+                shoppingList[existingItemIndex].quantity = currentQuantity + 1;
+                console.log('Item already in list. Quantity incremented.');
+            } else {
+                item.quantity = 1;
+                shoppingList.push(item);
+                console.log('New item added to list.');
+            }
+
+            const response = await fetch('/api/shopping-list', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(item)
+                body: JSON.stringify(shoppingList)
             });
-            await fetchShoppingList(); // Refresh the shopping list
+
+            if (response.ok) {
+                const updatedList = await response.json();
+                shoppingList = updatedList;
+                renderShoppingList();
+                console.log('Shopping list updated successfully.');
+            } else {
+                const errorData = await response.json();
+                console.error('Server failed to update shopping list:', errorData);
+                alert(`Error: ${errorData.message || 'Server failed to update shopping list.'}`);
+            }
         } catch (error) {
-            console.error('Error adding item to shopping list:', error);
+            console.error('Failed to add item:', error);
+            alert('An unexpected error occurred. Please check the console for details.');
         }
     };
 
-    const removeShoppingListItem = async (itemName) => {
-        console.log(`Attempting to remove item: ${itemName}`);
+    const removeItemFromShoppingList = async (itemId) => {
         try {
             const response = await fetch('/api/shopping-list', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: itemName })
+                body: JSON.stringify({ id: itemId })
             });
-
             if (response.ok) {
-                console.log('Item removed successfully from the server.');
-                await fetchShoppingList(); // Refresh the shopping list
+                shoppingList = shoppingList.filter(item => item.id !== itemId);
+                renderShoppingList();
             } else {
-                console.error('Failed to remove item from the server.');
+                const errorData = await response.json();
+                console.error('Server failed to remove item:', errorData);
+                alert(`Error: ${errorData.message || 'Server failed to remove item.'}`);
             }
         } catch (error) {
-            console.error('Error removing item from shopping list:', error);
+            console.error('Failed to remove item:', error);
+            alert('An unexpected error occurred. Please check the console for details.');
         }
     };
 
-    updateBtn.addEventListener('click', async () => {
-        statusMessage.textContent = 'Updating flyer data... This may take a moment.';
-        statusMessage.style.color = 'blue';
+    const clearShoppingList = async () => {
+        if (window.confirm("Are you sure you want to clear your shopping list? This action cannot be undone.")) {
+            try {
+                const response = await fetch('/api/shopping-list/clear', {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    fetchShoppingList();
+                }
+            } catch (error) {
+            console.error('Failed to clear list:', error);
+            }
+        }
+    };
 
+const sendShoppingList = async () => {
+    if (shoppingList.length === 0) {
+        alert('Your shopping list is empty. Please add items before sending.');
+        return;
+    }
+
+    const textUrl = '192.168.1.139:1972/api/shopping-list-text';
+    let textContent = `Your Shopping List\nURL: ${textUrl}\n\n`;
+
+    if (shoppingList.length === 0) {
+        textContent += "Your shopping list is empty.";
+    } else {
+        const itemsByStore = shoppingList.reduce((acc, item) => {
+            const store = item.store || 'Uncategorized';
+            if (!acc[store]) {
+                acc[store] = [];
+            }
+            acc[store].push(item);
+            return acc;
+        }, {});
+
+        for (const store in itemsByStore) {
+            textContent += `--- ${store.replace(/_/g, ' ').toUpperCase()} ---\n`;
+            itemsByStore[store].forEach(item => {
+                const unitDisplay = (item.unit && item.unit !== 'N/A') ? `${item.unit}` : '';
+                let priceInfo = '';
+                if (item.price && item.price !== 'N/A') {
+                    priceInfo = `${item.price}${unitDisplay ? ' ' + unitDisplay : ''}`;
+                    if (item.original_price && item.original_price !== 'N/A' && item.original_price !== item.price) {
+                        // The change is in the line below.
+                        // I've replaced ' / ' with ' ' to avoid the double slash.
+                        priceInfo += ` (was ${item.original_price}${unitDisplay ? ' ' + unitDisplay : ''})`;
+                    }
+                } else if (item.original_price && item.original_price !== 'N/A') {
+                    priceInfo = `${item.original_price}${unitDisplay ? ' ' + unitDisplay : ''}`;
+                }
+
+                textContent += `- (x${item.quantity || 1}) ${item.name} - ${priceInfo}`;
+                if (item.store === 'nofrills' && item.details) {
+                    textContent += ` - ${item.details}`;
+                }
+                textContent += `\n`;
+            });
+            textContent += '\n';
+        }
+    }
+
+    textListArea.value = textContent;
+    textListModal.style.display = 'flex';
+};
+    closeTextModalBtn.addEventListener('click', () => {
+        textListModal.style.display = 'none';
+    });
+
+    copyTextBtn.addEventListener('click', () => {
+        textListArea.select();
+        document.execCommand('copy');
+        alert('Shopping list copied to clipboard!');
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target === textListModal) {
+            textListModal.style.display = 'none';
+        }
+    });
+
+    const updateData = async () => {
+        updateDataBtn.disabled = true;
+        updateDataBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                         <path d="M21.5 2v6h-6"/><path d="M21.5 6H17a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h4.5v-6h-4.5"/><path d="M2.5 22v-6h6"/><path d="M2.5 18H7a1 1 0 0 1 1-1v-6a1 1 0 0 1-1-1H2.5v6h4.5"/>
+                                         <path d="M12 11h.01"/><path d="M12 15h.01"/><path d="M12 19h.01"/>
+                                      </svg>  Updating...`;
         try {
-            const response = await fetch('/api/update-data', { method: 'POST' });
-            const result = await response.json();
-
+            const response = await fetch('/api/update-data', {
+                method: 'POST',
+            });
             if (response.ok) {
-                statusMessage.textContent = result.message;
-                statusMessage.style.color = 'green';
-
-                setTimeout(() => {
-                    fetchFlyerData();
-                    statusMessage.textContent = 'Flyer data updated.';
-                }, 15000); // 15 seconds
+                const result = await response.json();
+                alert(result.message);
+                fetchFlyers();
             } else {
-                statusMessage.textContent = `Error: ${result.error}`;
-                statusMessage.style.color = 'red';
+                const error = await response.json();
+                alert(`Error: ${error.message}`);
             }
         } catch (error) {
-            statusMessage.textContent = `An unexpected error occurred: ${error}`;
-            statusMessage.style.color = 'red';
+            console.error('Failed to update data:', error);
+            alert('An unexpected error occurred while updating data.');
+        } finally {
+            updateDataBtn.disabled = false;
+            updateDataBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                         <path d="M21.5 2v6h-6"/><path d="M21.5 6H17a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h4.5v-6h-4.5"/><path d="M2.5 22v-6h6"/><path d="M2.5 18H7a1 1 0 0 1 1-1v-6a1 1 0 0 1-1-1H2.5v6h4.5"/>
+                                         <path d="M12 11h.01"/><path d="M12 15h.01"/><path d="M12 19h.01"/>
+                                      </svg> Update`;
+        }
+    };
+
+    searchInput.addEventListener('input', (e) => fetchFlyers(e.target.value));
+    updateDataBtn.addEventListener('click', updateData);
+    clearListBtn.addEventListener('click', clearShoppingList);
+    sendListBtn.addEventListener('click', sendShoppingList);
+
+    tabContent.addEventListener('click', (e) => {
+        const btn = e.target.closest('.add-to-list-btn');
+        if (btn) {
+            try {
+                const itemData = btn.dataset.item;
+                if (itemData) {
+                    const item = JSON.parse(itemData);
+                    // 🚀 The item's ID is now correctly set here to be stable.
+                    addItemToShoppingList(item);
+                } else {
+                    console.error('Item data attribute is missing.');
+                }
+            } catch (error) {
+                console.error('Failed to parse item data:', error);
+            }
         }
     });
 
-    // Real-time search functionality
-    searchInput.addEventListener('input', () => {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            const query = searchInput.value.trim();
-            fetchFlyerData(query);
-        }, 300); // 300ms delay to avoid excessive API calls
-    });
-
-    // Use event delegation for "Add to List" buttons
-    document.addEventListener('click', (event) => {
-        if (event.target.classList.contains('add-to-list-btn')) {
-            const itemData = JSON.parse(event.target.getAttribute('data-item'));
-            addItemToShoppingList(itemData);
+    shoppingListUl.addEventListener('click', (e) => {
+        const btn = e.target.closest('.remove-btn');
+        if (btn) {
+            const itemId = btn.dataset.id;
+            removeItemFromShoppingList(itemId);
         }
     });
 
-document.getElementById('send-list-btn').addEventListener('click', async () => {
-    try {
-        const response = await fetch('/generate_qr');
-        if (response.ok) {
-            const blob = await response.blob();
-            const qrUrl = URL.createObjectURL(blob);
-
-            const img = document.createElement('img');
-            img.src = qrUrl;
-            img.alt = 'Shopping List QR Code';
-            img.style.width = '200px';
-
-            const container = document.getElementById('qr-container');
-            container.innerHTML = '';
-            container.appendChild(img);
-        } else {
-            alert('Failed to generate QR code.');
-        }
-    } catch (err) {
-        console.error('Error generating QR code:', err);
-        alert('Error generating QR code.');
-    }
-});
-
-
-    // Initial load of flyer and shopping list data
-    fetchFlyerData();
-    fetchShoppingList();
+    await fetchShoppingList();
+    fetchFlyers();
 });

@@ -84,6 +84,7 @@ def scrape_single_page(driver, page_url):
             "name": None,
             "price": None,
             "unit": None,
+            "details": None, # Added new details field
             "original_price": None,
             "image_url": None,
             "valid": True,
@@ -93,56 +94,61 @@ def scrape_single_page(driver, page_url):
 
         try:
             # Extract and clean name
-            name_tag = (tile.select_one('h3[data-testid="product-title"], h3.product-title') or
-                        tile.select_one('div[data-testid="product-title"]'))
+            name_tag = tile.select_one('h3[data-testid="product-title"]')
             product_data["name"] = clean_value(name_tag.get_text(strip=True) if name_tag else None)
 
-            # Extract and clean price
-            sale_price_tag = (tile.select_one('span[data-testid="sale-price"], span.price__value') or
-                              tile.select_one('span.price-sale'))
-            if sale_price_tag:
-                product_data["price"] = clean_value(
-                    sale_price_tag.get_text(strip=True)
-                    .replace('sale', '')
-                    .strip()
+            # Extract and clean original price first
+            original_price_tag = tile.select_one('span[data-testid="was-price"]') or tile.select_one('span[data-testid="regular-price"]')
+            if original_price_tag:
+                original_price_text = original_price_tag.get_text(strip=True)
+                product_data["original_price"] = clean_value(
+                    original_price_text.replace('was', '').strip()
                 )
 
-            # Extract and clean original price
-            was_price_tag = (tile.select_one('span[data-testid="was-price"], span.price__was') or
-                             tile.select_one('span.price-was'))
-            if was_price_tag:
-                product_data["original_price"] = clean_value(
-                    was_price_tag.get_text(strip=True)
-                    .replace('was', '')
-                    .strip()
-                )
+            # Extract and clean price (sale price)
+            sale_price_tag = tile.select_one('span[data-testid="sale-price"]')
+            if sale_price_tag:
+                price_text = sale_price_tag.get_text(strip=True)
+                product_data["price"] = clean_value(price_text.replace('sale', '').strip())
+            else:
+                product_data["price"] = None
+
 
             # Extract and clean unit/amount
-            amount_tag = (tile.select_one('p[data-testid="product-package-size"], p.product-amount') or
-                          tile.select_one('div.product-size'))
+            amount_tag = tile.select_one('p[data-testid="product-package-size"]')
             if amount_tag:
-                product_data["unit"] = clean_value(amount_tag.get_text(strip=True))
+                text = clean_value(amount_tag.get_text(strip=True))
+                if text:
+                    # Logic to determine if text is a unit or a details string
+                    if '/' in text and 'g' in text.lower() or 'kg' in text.lower():
+                        # This is a price per unit, store it in unit and details
+                        parts = text.split('$')
+                        product_data["unit"] = parts[0].strip().replace(',', '')
+                        if len(parts) > 1:
+                            product_data["details"] = f"${parts[1].strip()}"
+                    else:
+                        product_data["unit"] = text
 
             # Extract and clean image URL
-            img_tag = (tile.select_one('div[data-testid="product-image"] img, div.product-image img') or
-                       tile.select_one('img.product-img'))
+            img_tag = tile.select_one('div[data-testid="product-image"] img')
+            image_url = None
             if img_tag and 'src' in img_tag.attrs:
                 image_url = img_tag['src']
             product_data["image_url"] = clean_value(
                 urljoin('https://www.nofrills.ca', image_url)
-                if image_url.startswith('/')
+                if image_url and image_url.startswith('/')
                 else image_url
             )
 
             # Validate required fields
-            if not product_data["name"] or not product_data["price"]:
+            if not product_data["name"] or not product_data["price"] and not product_data["original_price"]:
                 product_data["valid"] = False
-            missing_fields = []
-            if not product_data["name"]:
-                missing_fields.append("name")
-            if not product_data["price"]:
-                missing_fields.append("price")
-            product_data["error"] = f"Missing {', '.join(missing_fields)}"
+                missing_fields = []
+                if not product_data["name"]:
+                    missing_fields.append("name")
+                if not product_data["price"] and not product_data["original_price"]:
+                    missing_fields.append("price/original_price")
+                product_data["error"] = f"Missing {', '.join(missing_fields)}"
 
         except Exception as e:
             product_data["valid"] = False
@@ -163,7 +169,7 @@ def scrape_single_page(driver, page_url):
 def scrape_nofrills_flyer(driver, flyers_data):
     """Scrape product data from all No Frills flyer pages (1-50)."""
     base_url = "https://www.nofrills.ca/en/deals/flyer"
-    max_pages = 20
+    max_pages = 1
     items_per_page = {}
 
     try:
@@ -182,7 +188,7 @@ def scrape_nofrills_flyer(driver, flyers_data):
 
             # Also stop if all products are invalid (optional)
             valid_items = [item for item in page_items if item.get("valid")]
-            if len(valid_items) == 0:
+            if len(valid_items) == 0 and len(page_items) > 0:
                 logging.info(f"All products invalid on page {page_num}, stopping pagination.")
                 break
 

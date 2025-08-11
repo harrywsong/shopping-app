@@ -1,48 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Weekly Flyer Deals & Shopping List</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlyerHub - Your Digital Shopping Companion</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon-16x16.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
 </head>
 <body>
+    <header>
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="FlyerHub Logo" class="logo">
+            <span class="app-title">FlyerHub</span>
+            <button id="update-data-btn" title="Update Flyers">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.5 2v6h-6"/><path d="M21.5 6H17a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h4.5v-6h-4.5"/><path d="M2.5 22v-6h6"/><path d="M2.5 18H7a1 1 0 0 1 1-1v-6a1 1 0 0 1-1-1H2.5v6h4.5"/><path d="M12 11h.01"/><path d="M12 15h.01"/><path d="M12 19h.01"/>
+                </svg>
+            </button>
+        </div>
+        <div class="search-bar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="search-input" class="search-input" placeholder="Search flyers...">
+        </div>
+        <div class="header-actions">
+            <button id="dark-mode-toggle" class="dark-mode-toggle" title="Toggle dark mode">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+                </svg>
+            </button>
+            <button id="shopping-list-toggle" class="shopping-list-toggle" title="Shopping List">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="9" cy="21" r="1"></circle>
+                    <circle cx="20" cy="21" r="1"></circle>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                </svg>
+                <span id="cart-count" class="cart-count">0</span>
+            </button>
+        </div>
+    </header>
 
-<header>
-    <h1>Weekly Flyer Deals & Shopping List</h1>
-    <button id="update-data-btn">Update Flyer Data</button>
-</header>
-
-<main>
-    <div id="status-message"></div>
-    <div class="search-container">
-        <input type="text" id="search-input" placeholder="Search for items..." />
-    </div>
-    <div class="main-content">
-        <section class="flyers-container">
-            <div class="tabs">
-                <button class="tab-button active" data-store="galleria">Galleria</button>
-                <button class="tab-button" data-store="tnt-supermarket">T&T Supermarket</button>
-                <button class="tab-button" data-store="foodbasics">Food Basics</button>
-                <button class="tab-button" data-store="nofrills">No Frills</button>
+    <div id="main-container">
+        <div class="tabs" id="tabs-container">
+            <div class="view-toggle">
+                <button id="grid-view-btn" class="active" title="Grid View">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                </button>
+                <button id="list-view-btn" title="List View">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="8" y1="6" x2="21" y2="6"></line>
+                        <line x1="8" y1="12" x2="21" y2="12"></line>
+                        <line x1="8" y1="18" x2="21" y2="18"></line>
+                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                    </svg>
+                </button>
             </div>
-            <div id="flyer-content">
-                <ul id="galleria-list" class="flyer-list active"></ul>
-                <ul id="tnt-supermarket-list" class="flyer-list"></ul>
-                <ul id="foodbasics-list" class="flyer-list"></ul>
-                <ul id="nofrills-list" class="flyer-list"></ul>
-            </div>
-        </section>
-
-        <section id="shopping-list-container">
-            <h2>Your Shopping List</h2>
-            <ul id="shopping-list"></ul>
-            <button id="send-list-btn">Generate QR Code</button>
-            <div id="qr-container" style="margin-top: 1em;"></div>
-        </section>
+        </div>
+        <div class="tab-content" id="tab-content">
+            <p id="status-message" class="status-message"></p>
+        </div>
     </div>
-</main>
 
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <aside id="shopping-list-sidebar">
+        <div class="shopping-list-header">
+            <h2>Shopping List</h2>
+            <button id="close-shopping-list">&times;</button>
+        </div>
+        <div id="shopping-list-container">
+            <ul id="shopping-list">
+                <li class="empty-list-message">Your shopping list is empty.</li>
+            </ul>
+        </div>
+        <div class="shopping-list-footer">
+            <button id="clear-list-btn">Clear List</button>
+            <button id="send-list-btn">Send List</button>
+        </div>
+    </aside>
+
+    <div id="text-list-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h4>Your Shopping List Text</h4>
+            <textarea id="text-list-area" readonly></textarea>
+            <button id="copy-text-btn">Copy to Clipboard</button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
