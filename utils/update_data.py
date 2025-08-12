@@ -57,19 +57,19 @@ def update_data():
         except Exception as e:
             logging.error(f"Error scraping Galleria: {e}")
 
-        # # Food Basics Scraper
-        # try:
-        #     logging.info("Attempting to fetch Foodbasics flyer data...")
-        #     scrape_foodbasics_flyer(driver, all_flyers_data["foodbasics"])
-        # except Exception as e:
-        #     logging.error(f"Error scraping Foodbasics: {e}")
-        #
-        # # T&T Supermarket Scraper
-        # try:
-        #     logging.info("Attempting to fetch Tnt Supermarket flyer data...")
-        #     scrape_tnt_flyer(driver, all_flyers_data["tnt_supermarket"])
-        # except Exception as e:
-        #     logging.error(f"Error scraping Tnt Supermarket: {e}")
+        # Food Basics Scraper
+        try:
+            logging.info("Attempting to fetch Foodbasics flyer data...")
+            scrape_foodbasics_flyer(driver, all_flyers_data["foodbasics"])
+        except Exception as e:
+            logging.error(f"Error scraping Foodbasics: {e}")
+
+        # T&T Supermarket Scraper
+        try:
+            logging.info("Attempting to fetch Tnt Supermarket flyer data...")
+            scrape_tnt_flyer(driver, all_flyers_data["tnt_supermarket"])
+        except Exception as e:
+            logging.error(f"Error scraping Tnt Supermarket: {e}")
 
         # No Frills Scraper
         try:
