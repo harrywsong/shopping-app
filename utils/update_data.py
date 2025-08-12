@@ -4,8 +4,6 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from contextlib import contextmanager
 import os
-from webdriver_manager.manager import DriverManager
-from webdriver_manager.core.utils import ChromeType
 from stores.galleria_scraper import scrape_galleria_flyer
 from stores.foodbasics_scraper import scrape_foodbasics_flyer
 from stores.tnt_scraper import scrape_tnt_flyer
@@ -30,8 +28,7 @@ def get_driver():
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--window-size=1920,1080")
 
-        # Corrected line: Uses DriverManager with ChromeType.CHROMIUM
-        service = Service(DriverManager(ChromeType.CHROMIUM).install())
+        service = Service('/home/hws/shopping-app/chromedriver')
         driver = webdriver.Chrome(service=service, options=options)
         yield driver
     finally:
