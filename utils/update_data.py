@@ -29,8 +29,7 @@ def get_driver():
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--window-size=1920,1080")
 
-        service = Service(ChromeDriverManager().install())
-
+        service = Service(ChromeDriverManager(os_type="linux_arm64").install())
         driver = webdriver.Chrome(service=service, options=options)
         yield driver
     finally:
