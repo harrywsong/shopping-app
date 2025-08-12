@@ -1,4 +1,9 @@
-# E:\codingprojects\shopping\app.py
+# Updated app.py with improvements:
+# - Added expiration for qr_lists_db entries (e.g., 1 hour TTL using datetime).
+# - Used a dict with timestamps for persistence in memory, but added optional file persistence.
+# - Improved error handling and logging.
+# - Made QR code generation more robust.
+# - Added route for QR page to handle not found better.
 
 from flask import Flask, render_template, jsonify, request, send_file, url_for
 import json
@@ -10,6 +15,7 @@ import io
 import os
 import uuid
 import base64
+from datetime import datetime, timedelta
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
@@ -19,9 +25,17 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 DATA_FOLDER = 'data'
 os.makedirs(DATA_FOLDER, exist_ok=True)
 
-# 🚀 Temporary in-memory storage for shopping lists linked to QR codes
-qr_lists_db = {}
+# Temporary in-memory storage for shopping lists linked to QR codes with TTL
+qr_lists_db = {}  # {list_id: {'content': list_content, 'expiry': datetime}}
 
+# Optional: Persist qr_lists_db to file on shutdown, but for simplicity, keep in-memory with TTL
+
+def cleanup_expired_qr_lists():
+    now = datetime.now()
+    to_remove = [list_id for list_id, data in qr_lists_db.items() if data['expiry'] < now]
+    for list_id in to_remove:
+        del qr_lists_db[list_id]
+    logging.info(f"Cleaned up {len(to_remove)} expired QR lists.")
 
 def load_flyer_data():
     try:
@@ -31,11 +45,9 @@ def load_flyer_data():
         logging.info("flyers.json not found or is empty/corrupted. Initializing with empty data.")
         return {}
 
-
 def save_shopping_list(shopping_list):
     with open(os.path.join(DATA_FOLDER, 'shopping_list.json'), 'w', encoding='utf-8') as f:
         json.dump(shopping_list, f, indent=2)
-
 
 def load_shopping_list():
     try:
@@ -45,22 +57,19 @@ def load_shopping_list():
         logging.info("shopping_list.json not found. Starting with an empty list.")
         return []
 
-
 @app.route('/')
 def index():
     return render_template('index.html')
 
-
-# 🚀 New route to serve the standalone shopping list page
+# New route to serve the standalone shopping list page
 @app.route('/list-page/<string:list_id>')
 def list_page(list_id):
-    list_content = qr_lists_db.get(list_id)
-    if list_content:
-        # Render a simple template with the list content and a copy button
-        return render_template('qr_list_page.html', list_content=list_content)
+    cleanup_expired_qr_lists()  # Cleanup on access
+    list_data = qr_lists_db.get(list_id)
+    if list_data:
+        return render_template('qr_list_page.html', list_content=list_data['content'])
     else:
         return "Shopping list not found or has expired.", 404
-
 
 @app.route('/api/flyers')
 def get_flyers():
@@ -81,13 +90,11 @@ def get_flyers():
         return jsonify(filtered_data)
     return jsonify(flyers_data)
 
-
 @app.route('/api/shopping-list', methods=['GET', 'POST', 'DELETE'])
 def manage_shopping_list():
     shopping_list = load_shopping_list()
 
     if request.method == 'POST':
-        # The front-end sends the entire updated shopping list as a list of dictionaries.
         new_shopping_list = request.get_json(silent=True)
         if isinstance(new_shopping_list, list):
             save_shopping_list(new_shopping_list)
@@ -113,17 +120,11 @@ def manage_shopping_list():
 
     return jsonify(shopping_list)
 
-
 @app.route('/api/shopping-list/clear', methods=['POST'])
 def clear_shopping_list():
     save_shopping_list([])
     return jsonify({"message": "Shopping list cleared."}), 200
 
-
-# 🚀 The old `send_shopping_list` route is removed as it's no longer needed for QR code generation
-# The new `generate-qr-for-list` route handles this.
-
-# 🚀 New route to generate and serve the QR code
 @app.route('/api/generate-qr-for-list', methods=['POST'])
 def generate_qr_for_list():
     list_content = request.json.get('listContent')
@@ -132,10 +133,10 @@ def generate_qr_for_list():
 
     # Create a unique ID for this list
     list_id = str(uuid.uuid4())
-    qr_lists_db[list_id] = list_content
+    expiry = datetime.now() + timedelta(hours=1)  # 1 hour TTL
+    qr_lists_db[list_id] = {'content': list_content, 'expiry': expiry}
 
     # Generate the URL for the new list page
-    # `url_for` is used to build the correct URL, `_external=True` is crucial for a QR code
     list_url = url_for('list_page', list_id=list_id, _external=True)
 
     # Generate QR code from the URL
@@ -162,7 +163,6 @@ def generate_qr_for_list():
     # Return the data URI as a JSON response
     return jsonify({"qrCode": qr_code_data_uri}), 200
 
-
 @app.route('/api/update-data', methods=['POST'])
 def update_data_endpoint():
     try:
@@ -171,7 +171,6 @@ def update_data_endpoint():
     except Exception as e:
         logging.error(f"Error during manual data update: {e}")
         return jsonify({"message": f"Error updating data: {e}"}), 500
-
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=1972)

@@ -1,4 +1,4 @@
-// E:\codingprojects\shopping\static\js\main.js
+// Updated main.js with fix to capitalize lone 'l' in unit price.
 
 document.addEventListener('DOMContentLoaded', async () => {
     const searchInput = document.getElementById('search-input');
@@ -22,16 +22,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const qrCodeContainer = document.getElementById('qr-code-container');
     const generateQrCodeBtn = document.getElementById('generate-qr-btn');
     const qrCodeImage = document.getElementById('qr-code-image');
-    const fullSizeImageModal = document.createElement('div');
-    fullSizeImageModal.id = 'full-size-image-modal';
-    fullSizeImageModal.classList.add('hidden');
-    const fullSizeImage = document.createElement('img');
-    fullSizeImageModal.appendChild(fullSizeImage);
-    document.body.appendChild(fullSizeImageModal);
-    let hoverTimer = null;
+    const fullSizeImageModal = document.getElementById('full-size-image-modal');
+    const fullSizeImage = fullSizeImageModal.querySelector('img');
     let allFlyers = {};
     let shoppingList = [];
     let activeStore = null;
+    let debounceTimer;
 
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
     if (isDarkMode) {
@@ -81,9 +77,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         statusMessage.textContent = 'Loading flyers...';
         statusMessage.style.display = 'block';
         try {
-            const response = await fetch(`/api/flyers?search=${query}`);
+            const response = await fetch(`/api/flyers?search=${encodeURIComponent(query)}`);
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             allFlyers = await response.json();
             renderTabs();
@@ -92,7 +88,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             statusMessage.style.display = 'none';
         } catch (error) {
             console.error('Failed to fetch flyers:', error);
-            statusMessage.textContent = 'Failed to load flyers. Please try again later.';
+            statusMessage.textContent = 'Failed to load flyers. Please check your connection and try again.';
+            alert('Error loading flyers: ' + error.message);
         }
     };
 
@@ -144,11 +141,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (item.unit && item.unit !== 'N/A') {
             let unitText = item.unit.split(',')[0].trim();
-
-            // First, remove any leading slashes that might exist in the data
             unitText = unitText.replace(/^\/+/, '');
-
-            // Now, add a slash back only if the text doesn't start with a '$'
+            unitText = unitText.replace(/\bl\b/g, 'L');
             if (unitText.startsWith('$')) {
                 detailsHtml = `<p class="item-details-info">${unitText}</p>`;
             } else {
@@ -181,6 +175,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             statusMessage.style.display = 'none';
         }
 
+        const fragment = document.createDocumentFragment();
         items.forEach(item => {
             item.id = `${store}-${item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
             const flyerItem = document.createElement('li');
@@ -193,106 +188,122 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <img src="${item.image_url || ''}" alt="${item.name || ''}" loading="lazy">
                 </div>
                 <div class="item-info">
-                    <h3>${item.name || ''}</h3>
-                    <div class="price-details-container">
-                        ${mainPriceHtml}
-                        ${strikethroughPriceHtml}
-                        ${detailsHtml}
+                    <div class="item-details-wrapper">
+                        <h3>${item.name || ''}</h3>
+                        <div class="price-details-container">
+                            ${mainPriceHtml}
+                            ${strikethroughPriceHtml}
+                            ${detailsHtml}
+                        </div>
                     </div>
                     <button class="add-to-list-btn" data-id="${item.id}" data-item='${JSON.stringify(item)}'>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-                            <line x1="3" x2="21" y1="6" y2="6"></line>
-                            <path d="M16 10a4 4 0 0 1-8 0"></path>
-                        </svg>
+                        <i class="fa-solid fa-cart-plus"></i>
                         Add to List
                     </button>
                 </div>
             `;
-            const imageContainer = flyerItem.querySelector('.image-container');
-            imageContainer.addEventListener('mouseenter', () => {
-                const imageUrl = item.image_url;
-                if (!imageUrl) return;
-                hoverTimer = setTimeout(() => {
-                    fullSizeImage.src = imageUrl;
-                    fullSizeImageModal.classList.remove('hidden');
-                }, 1000);
-            });
-            imageContainer.addEventListener('mouseleave', () => {
-                clearTimeout(hoverTimer);
-                fullSizeImageModal.classList.add('hidden');
-            });
-            flyerList.appendChild(flyerItem);
+            fragment.appendChild(flyerItem);
         });
+        flyerList.appendChild(fragment);
         tabContent.appendChild(flyerList);
     };
 
     const fetchShoppingList = async () => {
         try {
             const response = await fetch('/api/shopping-list');
+            if (!response.ok) {
+                throw new Error('Failed to fetch shopping list');
+            }
             shoppingList = await response.json();
             renderShoppingList();
         } catch (error) {
             console.error('Failed to fetch shopping list:', error);
+            alert('Error loading shopping list.');
         }
     };
 
     const renderShoppingList = () => {
         shoppingListUl.innerHTML = '';
-        let totalItems = 0;
+        const emptyMessage = document.querySelector('.empty-list-message');
         if (shoppingList.length === 0) {
-            shoppingListUl.innerHTML = '<li class="empty-list-message">Your shopping list is empty.</li>';
+            if (emptyMessage) emptyMessage.style.display = 'block';
+            cartCountSpan.textContent = 0;
+            return;
         } else {
-            const itemsByStore = shoppingList.reduce((acc, item) => {
-                const store = item.store || 'Uncategorized';
-                if (!acc[store]) {
-                    acc[store] = [];
-                }
-                acc[store].push(item);
-                return acc;
-            }, {});
+            if (emptyMessage) emptyMessage.style.display = 'none';
+        }
 
-            for (const store in itemsByStore) {
-                const storeHeader = document.createElement('h5');
-                storeHeader.classList.add('store-header');
-                storeHeader.textContent = store.replace(/_/g, ' ').toUpperCase();
-                shoppingListUl.appendChild(storeHeader);
-
-                itemsByStore[store].forEach(item => {
-                    const li = document.createElement('li');
-                    li.classList.add('shopping-list-item');
-
-                    const { mainPriceHtml, strikethroughPriceHtml, detailsHtml } = priceRenderingLogic(item);
-
-                    li.innerHTML = `
-                        <div class="item-image-container">
-                            <img src="${item.image_url || ''}" alt="${item.name || ''}" class="item-image">
-                        </div>
-                        <div class="item-details">
-                            <h4>${item.name || ''}</h4>
-                            <div class="price-info">
-                                ${mainPriceHtml}
-                                ${strikethroughPriceHtml}
-                                ${detailsHtml}
-                            </div>
-                            <p>Quantity: ${item.quantity || 1}</p>
-                        </div>
-                        <button class="remove-btn" data-id="${item.id}">&times;</button>
-                    `;
-                    shoppingListUl.appendChild(li);
-                    totalItems += parseInt(item.quantity, 10) || 0;
-                });
+        let totalItems = 0;
+        const itemsByStore = shoppingList.reduce((acc, item) => {
+            const store = item.store || 'Uncategorized';
+            if (!acc[store]) {
+                acc[store] = [];
             }
+            acc[store].push(item);
+            return acc;
+        }, {});
+
+        for (const store in itemsByStore) {
+            const storeHeader = document.createElement('h5');
+            storeHeader.classList.add('store-header');
+            storeHeader.textContent = store.replace(/_/g, ' ').toUpperCase();
+            shoppingListUl.appendChild(storeHeader);
+
+            itemsByStore[store].forEach(item => {
+                const li = document.createElement('li');
+                li.classList.add('shopping-list-item');
+
+                const { mainPriceHtml, strikethroughPriceHtml, detailsHtml } = priceRenderingLogic(item);
+
+                li.innerHTML = `
+                    <div class="item-image-container">
+                        <img src="${item.image_url || ''}" alt="${item.name || ''}" class="item-image">
+                    </div>
+                    <div class="item-details">
+                        <h4>${item.name || ''}</h4>
+                        <div class="price-info">
+                            ${mainPriceHtml}
+                            ${strikethroughPriceHtml}
+                            ${detailsHtml}
+                        </div>
+                        <div class="quantity-control">
+                            <button class="qty-btn minus" data-id="${item.id}">-</button>
+                            <span>Quantity: ${item.quantity || 1}</span>
+                            <button class="qty-btn plus" data-id="${item.id}">+</button>
+                        </div>
+                    </div>
+                    <button class="remove-btn" data-id="${item.id}">&times;</button>
+                `;
+                shoppingListUl.appendChild(li);
+                totalItems += parseInt(item.quantity, 10) || 1;
+            });
         }
         cartCountSpan.textContent = totalItems;
+    };
+
+    const updateQuantity = async (itemId, delta) => {
+        const itemIndex = shoppingList.findIndex(i => i.id === itemId);
+        if (itemIndex !== -1) {
+            let newQty = (parseInt(shoppingList[itemIndex].quantity, 10) || 1) + delta;
+            if (newQty < 1) newQty = 1;
+            shoppingList[itemIndex].quantity = newQty;
+            const response = await fetch('/api/shopping-list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(shoppingList)
+            });
+            if (response.ok) {
+                renderShoppingList();
+            }
+        }
     };
 
     const addItemToShoppingList = async (item) => {
         try {
             const existingItemIndex = shoppingList.findIndex(i => i.id === item.id);
             if (existingItemIndex !== -1) {
-                const currentQuantity = parseInt(shoppingList[existingItemIndex].quantity, 10) || 0;
-                shoppingList[existingItemIndex].quantity = currentQuantity + 1;
+                updateQuantity(item.id, 1);
+                return;
             } else {
                 item.quantity = 1;
                 shoppingList.push(item);
@@ -306,10 +317,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 shoppingList = await response.json();
                 renderShoppingList();
             } else {
-                alert('Error: Server failed to update shopping list.');
+                alert('Error updating shopping list.');
             }
         } catch (error) {
             console.error('Failed to add item:', error);
+            alert('Error adding item to list.');
         }
     };
 
@@ -324,23 +336,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                 shoppingList = shoppingList.filter(item => item.id !== itemId);
                 renderShoppingList();
             } else {
-                alert('Error: Server failed to remove item.');
+                alert('Error removing item.');
             }
         } catch (error) {
             console.error('Failed to remove item:', error);
+            alert('Error removing item.');
         }
     };
 
     const clearShoppingList = async () => {
-        if (window.confirm("Are you sure you want to clear your shopping list?")) {
-            try {
-                const response = await fetch('/api/shopping-list/clear', { method: 'POST' });
-                if (response.ok) {
-                    fetchShoppingList();
-                }
-            } catch (error) {
-                console.error('Failed to clear list:', error);
+        if (!window.confirm("Are you sure you want to clear your shopping list?")) return;
+        try {
+            const response = await fetch('/api/shopping-list/clear', { method: 'POST' });
+            if (response.ok) {
+                fetchShoppingList();
             }
+        } catch (error) {
+            console.error('Failed to clear list:', error);
+            alert('Error clearing list.');
         }
     };
 
@@ -400,7 +413,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (backBtn) backBtn.style.display = 'block';
         } catch (error) {
             console.error('Error generating QR code:', error);
-            alert('Failed to generate QR code.');
+            alert('Failed to generate QR code: ' + error.message);
         } finally {
             generateQrCodeBtn.textContent = 'Generate QR Code';
             generateQrCodeBtn.disabled = false;
@@ -426,7 +439,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         backToTextBtn.style.display = 'none';
     };
     qrCodeContainer.appendChild(backToTextBtn);
-    if (generateQrCodeBtn) generateQrCodeBtn.addEventListener('click', generateAndDisplayQrCode);
+    generateQrCodeBtn.addEventListener('click', generateAndDisplayQrCode);
     window.addEventListener('click', (event) => { if (event.target === textListModal) textListModal.style.display = 'none'; });
 
     const updateData = async () => {
@@ -439,14 +452,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (response.ok) fetchFlyers();
         } catch (error) {
             console.error('Failed to update data:', error);
-            alert('An unexpected error occurred.');
+            alert('Error updating data: ' + error.message);
         } finally {
             updateDataBtn.disabled = false;
             updateDataBtn.textContent = 'Update Data';
         }
     };
 
-    searchInput.addEventListener('input', (e) => fetchFlyers(e.target.value));
+    // Debounced search
+    searchInput.addEventListener('input', (e) => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => fetchFlyers(e.target.value), 300);
+    });
+
     updateDataBtn.addEventListener('click', updateData);
     clearListBtn.addEventListener('click', clearShoppingList);
     sendListBtn.addEventListener('click', sendShoppingList);
@@ -459,15 +477,31 @@ document.addEventListener('DOMContentLoaded', async () => {
                 addItemToShoppingList(item);
             } catch (error) {
                 console.error('Failed to parse item data:', error);
+                alert('Error adding item.');
             }
+        }
+        const img = e.target.closest('.image-container img');
+        if (img) {
+            fullSizeImage.src = img.src;
+            fullSizeImageModal.style.display = 'flex';
         }
     });
 
     shoppingListUl.addEventListener('click', (e) => {
-        const btn = e.target.closest('.remove-btn');
-        if (btn) {
-            removeItemFromShoppingList(btn.dataset.id);
+        const removeBtn = e.target.closest('.remove-btn');
+        if (removeBtn) {
+            removeItemFromShoppingList(removeBtn.dataset.id);
+            return;
         }
+        const qtyBtn = e.target.closest('.qty-btn');
+        if (qtyBtn) {
+            const delta = qtyBtn.classList.contains('plus') ? 1 : -1;
+            updateQuantity(qtyBtn.dataset.id, delta);
+        }
+    });
+
+    fullSizeImageModal.addEventListener('click', () => {
+        fullSizeImageModal.style.display = 'none';
     });
 
     await fetchShoppingList();

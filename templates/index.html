@@ -3,88 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FlyerHub - Your Digital Shopping Companion</title>
+    <title>Shopping List</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32x32.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon-16x16.png') }}">
-    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
 </head>
 <body>
     <header>
         <div class="logo-container">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="FlyerHub Logo" class="logo">
-            <span class="app-title">FlyerHub</span>
-            <button id="update-data-btn" title="Update Flyers">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21.5 2v6h-6"/><path d="M21.5 6H17a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h4.5v-6h-4.5"/><path d="M2.5 22v-6h6"/><path d="M2.5 18H7a1 1 0 0 1 1-1v-6a1 1 0 0 1-1-1H2.5v6h4.5"/><path d="M12 11h.01"/><path d="M12 15h.01"/><path d="M12 19h.01"/>
-                </svg>
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Shopping List Logo" class="logo">
+            <h1 class="app-title">Shopping List</h1>
+            <button id="update-data-btn" aria-label="Update Data">
+                <i class="fa-solid fa-arrows-rotate"></i>
             </button>
         </div>
         <div class="search-bar">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" id="search-input" class="search-input" placeholder="Search flyers...">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" id="search-input" class="search-input" placeholder="Search flyers..." aria-label="Search Flyers">
         </div>
         <div class="header-actions">
-            <button id="dark-mode-toggle" class="dark-mode-toggle" title="Toggle dark mode">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
-                </svg>
+            <button id="dark-mode-toggle" aria-label="Toggle Dark Mode">
+                <i class="fa-solid fa-moon"></i>
             </button>
-            <button id="shopping-list-toggle" class="shopping-list-toggle" title="Shopping List">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="9" cy="21" r="1"></circle>
-                    <circle cx="20" cy="21" r="1"></circle>
-                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                </svg>
+            <button id="shopping-list-toggle" class="shopping-list-toggle" aria-label="Shopping List">
+                <i class="fa-solid fa-cart-shopping"></i>
                 <span id="cart-count" class="cart-count">0</span>
             </button>
         </div>
     </header>
 
-    <div id="main-container">
-        <div class="tabs" id="tabs-container">
+    <main id="main-container">
+        <div class="tabs">
+            <div class="store-tabs-container"></div>
             <div class="view-toggle">
-                <button id="grid-view-btn" class="active" title="Grid View">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="3" width="7" height="7"></rect>
-                        <rect x="14" y="14" width="7" height="7"></rect>
-                        <rect x="3" y="14" width="7" height="7"></rect>
-                    </svg>
+                <button id="grid-view-btn" class="active" aria-label="Grid View">
+                    <i class="fa-solid fa-table-cells"></i>
                 </button>
-                <button id="list-view-btn" title="List View">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="8" y1="6" x2="21" y2="6"></line>
-                        <line x1="8" y1="12" x2="21" y2="12"></line>
-                        <line x1="8" y1="18" x2="21" y2="18"></line>
-                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                    </svg>
+                <button id="list-view-btn" aria-label="List View">
+                    <i class="fa-solid fa-list-ul"></i>
                 </button>
             </div>
         </div>
-        <div class="tab-content" id="tab-content">
-            <p id="status-message" class="status-message"></p>
-        </div>
-    </div>
+        <div class="tab-content"></div>
+        <p id="status-message" style="display: none;"></p>
+    </main>
 
     <aside id="shopping-list-sidebar">
         <div class="shopping-list-header">
             <h2>Shopping List</h2>
-            <button id="close-shopping-list">&times;</button>
+            <button id="close-shopping-list" aria-label="Close Shopping List">&times;</button>
         </div>
         <div id="shopping-list-container">
-            <ul id="shopping-list">
-                <li class="empty-list-message">Your shopping list is empty.</li>
-            </ul>
+            <ul id="shopping-list"></ul>
+            <p class="empty-list-message" style="display: none;">Your shopping list is empty.</p>
         </div>
         <div class="shopping-list-footer">
             <button id="clear-list-btn">Clear List</button>
@@ -92,29 +63,21 @@
         </div>
     </aside>
 
-    <div id="text-list-modal" class="modal">
+    <div id="text-list-modal" class="modal hidden">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
-            <h4>Your Shopping List Text</h4>
+            <h2>Your Shopping List Text</h2>
             <textarea id="text-list-area" readonly></textarea>
-
-            <div id="qr-code-container" style="display:none; text-align: center;">
-                <img id="qr-code-image" src="" alt="QR Code" style="max-width: 300px; height: auto; margin-top: 20px;">
-                </div>
-
-            <div class="modal-buttons">
-                <button id="copy-text-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-copy"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                    Copy to Clipboard
-                </button>
-                <button id="generate-qr-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M3 9h18"></path><path d="M9 21V9"></path><path d="M15 21v-3"></path><path d="M9 15v-3"></path><path d="M15 15v-3"></path></svg>
-                    Generate QR Code
-                </button>
+            <div id="qr-code-container" style="display: none;">
+                <img id="qr-code-image" alt="QR Code">
             </div>
+            <button id="copy-text-btn">Copy to Clipboard</button>
+            <button id="generate-qr-btn">Generate QR Code</button>
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <div id="full-size-image-modal" class="hidden">
+        <img alt="Full Size Image">
+    </div>
 </body>
 </html>
