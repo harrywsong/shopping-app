@@ -22,7 +22,7 @@ def scrape_foodbasics_flyer(driver, flyers_data):
 
     base_url = "https://www.foodbasics.ca/search"
     page = 1
-    max_pages = 20  # Set the maximum number of pages to scrape
+    max_pages = 50  # Set the maximum number of pages to scrape
 
     while page <= max_pages:
         # Construct paginated URL

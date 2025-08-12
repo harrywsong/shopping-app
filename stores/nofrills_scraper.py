@@ -152,7 +152,7 @@ def scrape_single_page(driver, page_url):
 
 def scrape_nofrills_flyer(driver, flyers_data):
     base_url = "https://www.nofrills.ca/en/deals/flyer"
-    max_pages = 20
+    max_pages = 50
     items_per_page = {}
     previous_page_items = set()  # To detect duplicates for stopping
 
