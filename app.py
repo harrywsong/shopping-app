@@ -1,5 +1,6 @@
 # E:\codingprojects\shopping\app.py
-from flask import Flask, render_template, jsonify, request, send_file
+
+from flask import Flask, render_template, jsonify, request, send_file, url_for
 import json
 import logging
 from utils.update_data import update_data
@@ -8,6 +9,7 @@ from qrcode.image.pil import PilImage
 import io
 import os
 import uuid
+import base64
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
@@ -16,6 +18,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 DATA_FOLDER = 'data'
 os.makedirs(DATA_FOLDER, exist_ok=True)
+
+# 🚀 Temporary in-memory storage for shopping lists linked to QR codes
+qr_lists_db = {}
 
 
 def load_flyer_data():
@@ -44,6 +49,17 @@ def load_shopping_list():
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+# 🚀 New route to serve the standalone shopping list page
+@app.route('/list-page/<string:list_id>')
+def list_page(list_id):
+    list_content = qr_lists_db.get(list_id)
+    if list_content:
+        # Render a simple template with the list content and a copy button
+        return render_template('qr_list_page.html', list_content=list_content)
+    else:
+        return "Shopping list not found or has expired.", 404
 
 
 @app.route('/api/flyers')
@@ -104,33 +120,47 @@ def clear_shopping_list():
     return jsonify({"message": "Shopping list cleared."}), 200
 
 
-@app.route('/api/shopping-list/send', methods=['POST'])
-def send_shopping_list():
-    shopping_list = load_shopping_list()
-    if not shopping_list:
-        return jsonify({"error": "Shopping list is empty."}), 400
+# 🚀 The old `send_shopping_list` route is removed as it's no longer needed for QR code generation
+# The new `generate-qr-for-list` route handles this.
 
-    list_text = "My Shopping List:\n"
-    for item in shopping_list:
-        item_name = item.get('name', 'N/A')
-        item_store = item.get('store', 'N/A').replace('_', ' ').title()
-        item_price = item.get('price', 'N/A')
-        item_quantity = item.get('quantity', 1)
-        item_original_price = item.get('original_price', 'N/A')
+# 🚀 New route to generate and serve the QR code
+@app.route('/api/generate-qr-for-list', methods=['POST'])
+def generate_qr_for_list():
+    list_content = request.json.get('listContent')
+    if not list_content:
+        return jsonify({"error": "No list content provided."}), 400
 
-        price_info = f"({item_price} x {item_quantity})"
-        if item_original_price and item_original_price != 'N/A':
-            price_info = f"({item_price} on sale, was {item_original_price} x {item_quantity})"
+    # Create a unique ID for this list
+    list_id = str(uuid.uuid4())
+    qr_lists_db[list_id] = list_content
 
-        list_text += f"- {item_name} from {item_store} {price_info}\n"
+    # Generate the URL for the new list page
+    # `url_for` is used to build the correct URL, `_external=True` is crucial for a QR code
+    list_url = url_for('list_page', list_id=list_id, _external=True)
 
-    qr_code_image = qrcode.make(list_text, image_factory=PilImage)
+    # Generate QR code from the URL
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(list_url)
+    qr.make(fit=True)
 
-    img_path = os.path.join('static', 'temp_qr', f'{uuid.uuid4()}.png')
-    os.makedirs(os.path.dirname(img_path), exist_ok=True)
-    qr_code_image.save(img_path)
+    img = qr.make_image(fill_color="black", back_color="white")
 
-    return send_file(img_path, mimetype='image/png')
+    # Save image to a BytesIO object
+    buffer = io.BytesIO()
+    img.save(buffer, format="PNG")
+    buffer.seek(0)
+
+    # Encode the image to base64
+    qr_code_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    qr_code_data_uri = f"data:image/png;base64,{qr_code_base64}"
+
+    # Return the data URI as a JSON response
+    return jsonify({"qrCode": qr_code_data_uri}), 200
 
 
 @app.route('/api/update-data', methods=['POST'])

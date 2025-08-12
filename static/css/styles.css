@@ -263,7 +263,6 @@ header {
     display: flex;
     flex-direction: column;
     transition: transform 0.2s, box-shadow 0.2s;
-    height: 100%;
 }
 
 .flyer-item:hover {
@@ -296,97 +295,75 @@ header {
 .image-container img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     display: block;
 }
 
 .item-info {
     padding: 15px;
     display: flex;
-    flex-direction: column; /* Keep as column to stack name and price info */
+    flex-direction: column;
     flex-grow: 1;
-    justify-content: space-between;
+    /* Aligns all children (name, prices, button) to the full width */
+    align-items: stretch;
 }
 
 .flyer-list.list-view .item-info {
-    display: flex;
-    padding: 0;
-    flex-grow: 1;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    flex-wrap: wrap; /* Allow the content to wrap */
+    flex-wrap: wrap;
+    padding: 0;
 }
 
 .item-info h3 {
-    margin: 0;
-    font-size: 1rem;
+    margin: 0 0 8px 0;
+    font-size: 1.1rem;
     font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    /* Ensures the name stays left-aligned */
+    text-align: left;
 }
 
-.price-and-button-container {
-    display: flex;
-    flex-direction: column; /* Changed from row to column to stack price and button */
-    align-items: flex-end;
-    gap: 5px;
-    flex-wrap: wrap;
+.price-details-container {
+    margin-bottom: 12px;
+    /* Aligns the price text to the right */
+    text-align: right;
 }
 
-/* 🚀 New, more robust fix for the button in list view */
-.flyer-list.list-view .price-and-button-container {
-    width: 100%;
-    margin-top: 5px;
-}
-
-.item-info .item-price-info {
+.price-details-container p {
     margin: 0;
-    display: flex;
-    align-items: baseline;
-    flex-wrap: nowrap;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 1.4;
+}
+
+.main-price {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.sale-price {
+    color: var(--primary-color); /* Blue for sale price */
+}
+
+.regular-price {
+    color: var(--accent-color); /* Green for regular price */
+}
+
+.original-price-strikethrough {
+    text-decoration: line-through;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
 }
 
 .item-details-info {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    margin: 0;
-}
-.item-price {
-    font-size: 1rem;
-    font-weight: bold;
-    color: var(--primary-color);
-    margin-right: 4px;
-}
-
-/* New style for regular price, to be used when no sale price is available */
-.regular-price {
-    font-size: 1rem;
-    font-weight: bold;
-    color: var(--accent-color);
-    margin-right: 4px;
-}
-
-.original-price {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    text-decoration: line-through;
-    margin-left: 8px;
-}
-
-.price-unit {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     color: var(--text-secondary);
 }
+
 .add-to-list-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px 12px;
+    padding: 10px 12px;
     background-color: var(--accent-color);
     color: white;
     border: none;
@@ -395,7 +372,10 @@ header {
     font-size: 0.9rem;
     font-weight: bold;
     transition: background-color 0.2s;
-    margin-top: 0;
+    /* Pushes button to the bottom */
+    margin-top: auto;
+    /* Aligns the button itself to the right edge of the card */
+    align-self: flex-end;
 }
 
 .add-to-list-btn:hover {
@@ -406,12 +386,11 @@ header {
     margin-right: 8px;
 }
 
-/* Match list view button style with icon view */
 .flyer-list.list-view .add-to-list-btn {
-    width: auto;            /* Let it size naturally */
-    min-width: 40px;         /* Ensure icon-only buttons don’t shrink too small */
-    padding: 8px 12px;       /* Same as icon view */
+    margin-top: 0;
+    align-self: center;
 }
+
 
 /* --- Shopping List Sidebar --- */
 #shopping-list-sidebar {
@@ -516,236 +495,4 @@ body.shopping-list-open #shopping-list-sidebar {
 .item-details h4 {
     margin: 0 0 5px;
     font-size: 1rem;
-    font-weight: 600;
-}
-
-.price-info {
-    margin: 0;
-    display: flex;
-    align-items: baseline;
-}
-
-.sale-price {
-    font-weight: bold;
-    color: var(--primary-color);
-    margin-right: 8px;
-}
-
-/* Price color for items that are not on sale in the product list */
-.regular-price-list {
-    font-size: 1rem;
-    font-weight: bold;
-    color: var(--accent-color); /* This will show the price in green */
-    margin-right: 4px;
-}
-
-.original-price-strikethrough {
-    text-decoration: line-through;
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-}
-
-.item-details p:last-child {
-    margin: 0;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-}
-
-.price-stack {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end; /* Align prices to the right */
-}
-
-.remove-btn {
-    background: none;
-    border: none;
-    color: var(--danger-color);
-    font-size: 1.5rem;
-    cursor: pointer;
-    margin-left: 10px;
-    padding: 0;
-}
-
-.shopping-list-footer {
-    padding: 15px 20px;
-    border-top: 1px solid var(--border-color);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
-}
-
-.shopping-list-footer button {
-    padding: 10px;
-    border-radius: 5px;
-    font-weight: bold;
-    cursor: pointer;
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-#clear-list-btn {
-    background-color: var(--danger-color);
-    color: white;
-    border: 1px solid var(--danger-color);
-}
-
-#clear-list-btn:hover {
-    background-color: #c82333;
-}
-
-#send-list-btn {
-    background-color: var(--primary-color);
-    color: white;
-    border: 1px solid var(--primary-color);
-}
-
-#send-list-btn:hover {
-    background-color: #0056b3;
-}
-
-.status-message {
-    padding: 20px;
-    text-align: center;
-    font-style: italic;
-    color: var(--text-secondary);
-    display: none;
-}
-
-/* --- Modal Styles --- */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.4);
-    justify-content: center;
-    align-items: center;
-}
-
-.modal-content {
-    background-color: var(--surface-color);
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: var(--box-shadow);
-    max-width: 500px;
-    width: 90%;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-}
-
-.close-modal {
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    font-size: 2rem;
-    font-weight: bold;
-    cursor: pointer;
-    color: var(--text-color);
-}
-
-#text-list-area {
-    width: 100%;
-    min-height: 200px;
-    margin-top: 10px;
-    padding: 10px;
-    font-family: monospace;
-    font-size: 0.9rem;
-    background-color: var(--background-color);
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
-    border-radius: 5px;
-    resize: vertical;
-}
-
-#copy-text-btn {
-    margin-top: 15px;
-    padding: 10px 15px;
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: bold;
-    align-self: flex-end;
-}
-
-.price-and-button-container p {
-    margin: 0;
-}
-
-/* --- Responsive Design --- */
-@media (max-width: 1200px) {
-    body.shopping-list-open {
-        grid-template-columns: minmax(0, 1fr) 350px;
-    }
-    #shopping-list-sidebar {
-        width: 350px;
-    }
-}
-
-@media (max-width: 992px) {
-    .search-bar {
-        max-width: 400px;
-    }
-    .flyer-list {
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    }
-}
-
-@media (max-width: 768px) {
-    body {
-        grid-template-columns: 1fr;
-    }
-    header {
-        flex-wrap: wrap;
-        padding-bottom: 10px;
-        position: static;
-    }
-    .search-bar {
-        order: 3;
-        width: 100%;
-        margin: 10px 0 0;
-    }
-    .header-actions {
-        order: 2;
-    }
-    .app-title {
-        order: 1;
-        flex-grow: 1;
-    }
-    .view-toggle {
-        display: flex;
-    }
-
-    body.shopping-list-open {
-        grid-template-columns: 1fr;
-    }
-
-    #main-container {
-        display: none;
-    }
-
-    #shopping-list-sidebar {
-        width: 100%;
-        transform: translateX(100%);
-        box-shadow: none;
-    }
-
-    body.shopping-list-open #shopping-list-sidebar {
-        transform: translateX(0);
-    }
-
-    .flyer-list {
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    }
 }

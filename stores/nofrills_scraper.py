@@ -84,7 +84,7 @@ def scrape_single_page(driver, page_url):
             "name": None,
             "price": None,
             "unit": None,
-            "details": None, # Added new details field
+            "details": None,  # Added new details field
             "original_price": None,
             "image_url": None,
             "valid": True,
@@ -98,7 +98,8 @@ def scrape_single_page(driver, page_url):
             product_data["name"] = clean_value(name_tag.get_text(strip=True) if name_tag else None)
 
             # Extract and clean original price first
-            original_price_tag = tile.select_one('span[data-testid="was-price"]') or tile.select_one('span[data-testid="regular-price"]')
+            original_price_tag = tile.select_one('span[data-testid="was-price"]') or tile.select_one(
+                'span[data-testid="regular-price"]')
             if original_price_tag:
                 original_price_text = original_price_tag.get_text(strip=True)
                 product_data["original_price"] = clean_value(
@@ -113,21 +114,23 @@ def scrape_single_page(driver, page_url):
             else:
                 product_data["price"] = None
 
-
             # Extract and clean unit/amount
             amount_tag = tile.select_one('p[data-testid="product-package-size"]')
             if amount_tag:
                 text = clean_value(amount_tag.get_text(strip=True))
                 if text:
-                    # Logic to determine if text is a unit or a details string
-                    if '/' in text and 'g' in text.lower() or 'kg' in text.lower():
-                        # This is a price per unit, store it in unit and details
+                    # Check for a price per unit string (e.g., "1.36 kg $0.22/100g")
+                    if '$' in text and text.endswith(('g', 'kg')):
                         parts = text.split('$')
-                        product_data["unit"] = parts[0].strip().replace(',', '')
-                        if len(parts) > 1:
-                            product_data["details"] = f"${parts[1].strip()}"
+                        unit_text = parts[0].strip().replace(',', '')
+                        details_text = f"${parts[1].strip()}"
+
+                        # Prepend the slash to the unit
+                        product_data["unit"] = f"/{unit_text}"
+                        product_data["details"] = details_text
                     else:
-                        product_data["unit"] = text
+                        # For a simple unit string (e.g., "1 ea")
+                        product_data["unit"] = f"/{text}"
 
             # Extract and clean image URL
             img_tag = tile.select_one('div[data-testid="product-image"] img')
