@@ -1,4 +1,4 @@
-// Updated main.js with fix to capitalize lone 'l' in unit price.
+// Updated main.js to fix the display of "NO FRILLS" store name.
 
 document.addEventListener('DOMContentLoaded', async () => {
     const searchInput = document.getElementById('search-input');
@@ -73,6 +73,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     shoppingListToggleBtn.addEventListener('click', toggleShoppingList);
     closeShoppingListBtn.addEventListener('click', toggleShoppingList);
 
+    // New helper function to format store names
+    const formatStoreName = (store) => {
+        if (store.toLowerCase() === 'nofrills') {
+            return 'NO FRILLS';
+        }
+        return store.replace(/_/g, ' ').toUpperCase();
+    };
+
     const fetchFlyers = async (query = '') => {
         statusMessage.textContent = 'Loading flyers...';
         statusMessage.style.display = 'block';
@@ -105,7 +113,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         Object.keys(allFlyers).forEach((store, index) => {
             const tabButton = document.createElement('button');
             tabButton.classList.add('tab-button');
-            tabButton.textContent = store.replace(/_/g, ' ').toUpperCase();
+            tabButton.textContent = formatStoreName(store); // Use the new helper function
             tabButton.dataset.store = store;
             if (store === activeStore || (!activeStore && index === 0)) {
                 tabButton.classList.add('active');
@@ -168,7 +176,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (items.length === 0) {
-            statusMessage.textContent = `No flyers available for ${store.replace(/_/g, ' ').toUpperCase()}.`;
+            statusMessage.textContent = `No flyers available for ${formatStoreName(store)}.`; // Use the new helper function
             statusMessage.style.display = 'block';
             return;
         } else {
@@ -246,7 +254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         for (const store in itemsByStore) {
             const storeHeader = document.createElement('h5');
             storeHeader.classList.add('store-header');
-            storeHeader.textContent = store.replace(/_/g, ' ').toUpperCase();
+            storeHeader.textContent = formatStoreName(store); // Use the new helper function
             shoppingListUl.appendChild(storeHeader);
 
             itemsByStore[store].forEach(item => {
@@ -370,7 +378,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return acc;
         }, {});
         for (const store in itemsByStore) {
-            textContent += `--- ${store.replace(/_/g, ' ').toUpperCase()} ---\n`;
+            textContent += `--- ${formatStoreName(store)} ---\n`; // Use the new helper function
             itemsByStore[store].forEach(item => {
                 let itemText = `- (x${item.quantity || 1}) ${item.name}`;
                 const { mainPriceHtml, strikethroughPriceHtml, detailsHtml } = priceRenderingLogic(item);
