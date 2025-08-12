@@ -1,4 +1,4 @@
-// Updated main.js to fix the display of "NO FRILLS" store name.
+// Updated main.js to fix the display of "NO FRILLS" and "FOOD BASICS" store names.
 
 document.addEventListener('DOMContentLoaded', async () => {
     const searchInput = document.getElementById('search-input');
@@ -75,8 +75,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // New helper function to format store names
     const formatStoreName = (store) => {
-        if (store.toLowerCase() === 'nofrills') {
+        const lowerStore = store.toLowerCase();
+        if (lowerStore === 'nofrills') {
             return 'NO FRILLS';
+        }
+        if (lowerStore === 'foodbasics') {
+            return 'FOOD BASICS';
         }
         return store.replace(/_/g, ' ').toUpperCase();
     };
