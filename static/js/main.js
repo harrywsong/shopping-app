@@ -44,6 +44,64 @@ document.addEventListener('DOMContentLoaded', async () => {
         sort_order: 'asc'
     };
 
+    // Function declarations (moved before setupEventListeners to avoid hoisting issues)
+    const toggleShoppingList = () => {
+        document.body.classList.toggle('shopping-list-open');
+    };
+
+    function handleProductClick(e) {
+        const btn = e.target.closest('.add-to-list-btn');
+        if (btn) {
+            try {
+                const item = JSON.parse(btn.dataset.item);
+                addItemToShoppingList(item);
+            } catch (error) {
+                console.error('Failed to parse item data:', error);
+                showNotification('Error adding item', 'error');
+            }
+        }
+
+        const img = e.target.closest('.image-container img');
+        if (img) {
+            fullSizeImage.src = img.src;
+            fullSizeImageModal.style.display = 'flex';
+        }
+    }
+
+    function handleShoppingListClick(e) {
+        const removeBtn = e.target.closest('.remove-btn');
+        if (removeBtn) {
+            removeItemFromShoppingList(removeBtn.dataset.id);
+            return;
+        }
+
+        const qtyBtn = e.target.closest('.qty-btn');
+        if (qtyBtn) {
+            const delta = qtyBtn.classList.contains('plus') ? 1 : -1;
+            updateQuantity(qtyBtn.dataset.id, delta);
+        }
+    }
+
+    function handleKeyboardShortcuts(e) {
+        // Ctrl/Cmd + K to focus search
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            searchInput.focus();
+        }
+
+        // Ctrl/Cmd + L to toggle shopping list
+        if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+            e.preventDefault();
+            toggleShoppingList();
+        }
+
+        // Escape to close modals
+        if (e.key === 'Escape') {
+            textListModal.style.display = 'none';
+            fullSizeImageModal.style.display = 'none';
+        }
+    }
+
     // Initialize app
     initializeApp();
 
@@ -141,26 +199,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Keyboard shortcuts
         document.addEventListener('keydown', handleKeyboardShortcuts);
-    }
-
-    function handleKeyboardShortcuts(e) {
-        // Ctrl/Cmd + K to focus search
-        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-            e.preventDefault();
-            searchInput.focus();
-        }
-
-        // Ctrl/Cmd + L to toggle shopping list
-        if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
-            e.preventDefault();
-            toggleShoppingList();
-        }
-
-        // Escape to close modals
-        if (e.key === 'Escape') {
-            textListModal.style.display = 'none';
-            fullSizeImageModal.style.display = 'none';
-        }
     }
 
     function createFilterPanel() {
@@ -599,10 +637,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    const toggleShoppingList = () => {
-        document.body.classList.toggle('shopping-list-open');
-    };
-
     async function fetchShoppingList() {
         try {
             const response = await fetch('/api/shopping-list');
@@ -891,39 +925,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         } finally {
             updateDataBtn.disabled = false;
             updateDataBtn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i>';
-        }
-    }
-
-    function handleProductClick(e) {
-        const btn = e.target.closest('.add-to-list-btn');
-        if (btn) {
-            try {
-                const item = JSON.parse(btn.dataset.item);
-                addItemToShoppingList(item);
-            } catch (error) {
-                console.error('Failed to parse item data:', error);
-                showNotification('Error adding item', 'error');
-            }
-        }
-
-        const img = e.target.closest('.image-container img');
-        if (img) {
-            fullSizeImage.src = img.src;
-            fullSizeImageModal.style.display = 'flex';
-        }
-    }
-
-    function handleShoppingListClick(e) {
-        const removeBtn = e.target.closest('.remove-btn');
-        if (removeBtn) {
-            removeItemFromShoppingList(removeBtn.dataset.id);
-            return;
-        }
-
-        const qtyBtn = e.target.closest('.qty-btn');
-        if (qtyBtn) {
-            const delta = qtyBtn.classList.contains('plus') ? 1 : -1;
-            updateQuantity(qtyBtn.dataset.id, delta);
         }
     }
 
