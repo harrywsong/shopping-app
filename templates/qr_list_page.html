@@ -1,75 +1,377 @@
-<!-- Updated qr_list_page.html with improvements: -->
-<!-- - Used <pre> to preserve text formatting. -->
-<!-- - Added basic styling link. -->
-<!-- - Improved copy button with script. -->
-<!-- - Made it more user-friendly. -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Shopping List</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <title>Shared Shopping List</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
-        body { padding: 20px; }
-        pre { white-space: pre-wrap; word-wrap: break-word; background: var(--background-color); padding: 10px; border: 1px solid var(--border-color); }
-        button { padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; }
-        button:hover { background: #0069d9; }
+        :root {
+            --primary-color: #007bff;
+            --surface-color: #ffffff;
+            --background-color: #f8f9fa;
+            --text-color: #212529;
+            --text-secondary: #495057;
+            --border-color: #e9ecef;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            box-shadow: var(--box-shadow);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), #0056b3);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .list-content {
+            background-color: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            white-space: pre-wrap;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.95rem;
+            line-height: 1.8;
+            color: var(--text-color);
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            min-width: 140px;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+            transform: translateY(-1px);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .expiry-notice {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 20px;
+            color: #856404;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .list-content {
+                font-size: 0.85rem;
+                max-height: 400px;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                min-width: auto;
+                width: 100%;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                border: 1px solid #ccc;
+            }
+
+            .header {
+                background: white !important;
+                color: black !important;
+                border-bottom: 2px solid #ccc;
+            }
+
+            .actions, .footer, .expiry-notice {
+                display: none;
+            }
+
+            .list-content {
+                max-height: none;
+                overflow: visible;
+                background: white;
+            }
+        }
     </style>
 </head>
 <body>
-    <h1>Your Shopping List</h1>
-    <pre id="list-content">{{ list_content }}</pre>
-    <button onclick="copyList()">Copy to Clipboard</button>
-<script>
-    function copyList() {
-        const content = document.getElementById('list-content').textContent;
+    <div class="container">
+        <div class="header">
+            <h1>
+                <i class="fa-solid fa-list-check"></i>
+                Shared Shopping List
+            </h1>
+            <p>Generated from Shopping List App</p>
+        </div>
 
-        // Check if the modern Clipboard API is available
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(content).then(() => {
-                alert('Copied to clipboard!');
-            }).catch(err => {
-                console.error('Failed to copy using Clipboard API:', err);
-                // Fallback if permission is denied or an error occurs
-                fallbackCopyTextToClipboard(content);
-            });
-        } else {
-            // Fallback for older browsers
-            fallbackCopyTextToClipboard(content);
+        <div class="content">
+            <div class="expiry-notice">
+                <i class="fa-solid fa-clock"></i>
+                <span>This shared list expires in 1 hour for security. Save or print it if needed!</span>
+            </div>
+
+            <div class="list-content">{{ list_content }}</div>
+
+            <div class="actions">
+                <button class="btn btn-primary" onclick="copyToClipboard()">
+                    <i class="fa-solid fa-copy"></i>
+                    Copy List
+                </button>
+                <button class="btn btn-secondary" onclick="window.print()">
+                    <i class="fa-solid fa-print"></i>
+                    Print List
+                </button>
+                <button class="btn btn-secondary" onclick="shareList()" id="share-btn" style="display: none;">
+                    <i class="fa-solid fa-share"></i>
+                    Share
+                </button>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>
+                <i class="fa-solid fa-shopping-cart"></i>
+                Created with <a href="/" target="_blank">Shopping List App</a>
+            </p>
+            <p><small>Compare flyer deals • Create smart shopping lists • Save money</small></p>
+        </div>
+    </div>
+
+    <script>
+        // Copy to clipboard functionality
+        function copyToClipboard() {
+            const listContent = document.querySelector('.list-content').textContent;
+
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(listContent).then(() => {
+                    showNotification('Copied to clipboard!', 'success');
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                    fallbackCopyTextToClipboard(listContent);
+                });
+            } else {
+                fallbackCopyTextToClipboard(listContent);
+            }
         }
-    }
 
-    function fallbackCopyTextToClipboard(text) {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed";
-        textArea.style.top = "0";
-        textArea.style.left = "0";
-        textArea.style.width = "2em";
-        textArea.style.height = "2em";
-        textArea.style.padding = "0";
-        textArea.style.border = "none";
-        textArea.style.outline = "none";
-        textArea.style.boxShadow = "none";
-        textArea.style.background = "transparent";
+        // Fallback copy method for older browsers
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
 
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showNotification('Copied to clipboard!', 'success');
+                } else {
+                    showNotification('Copy failed. Please copy manually.', 'error');
+                }
+            } catch (err) {
+                console.error('Fallback copy failed: ', err);
+                showNotification('Copy failed. Please copy manually.', 'error');
+            }
 
-        try {
-            const successful = document.execCommand('copy');
-            const msg = successful ? 'Copied to clipboard!' : 'Failed to copy.';
-            alert(msg);
-        } catch (err) {
-            console.error('Fallback: Oops, unable to copy', err);
-            alert('Failed to copy: ' + err);
+            document.body.removeChild(textArea);
         }
 
-        document.body.removeChild(textArea);
-    }
-</script>
+        // Web Share API
+        function shareList() {
+            if (navigator.share) {
+                const listContent = document.querySelector('.list-content').textContent;
+                navigator.share({
+                    title: 'Shared Shopping List',
+                    text: listContent,
+                    url: window.location.href
+                }).catch((error) => console.log('Error sharing:', error));
+            }
+        }
+
+        // Show share button if Web Share API is supported
+        if (navigator.share) {
+            document.getElementById('share-btn').style.display = 'flex';
+        }
+
+        // Simple notification system
+        function showNotification(message, type) {
+            // Remove existing notifications
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 6px;
+                color: white;
+                font-weight: 500;
+                z-index: 10000;
+                transform: translateX(400px);
+                transition: transform 0.3s ease;
+                ${type === 'success' ? 'background-color: #28a745;' : 'background-color: #dc3545;'}
+            `;
+
+            document.body.appendChild(notification);
+
+            // Show notification
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+
+            // Hide notification after 3 seconds
+            setTimeout(() => {
+                notification.style.transform = 'translateX(400px)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Auto-refresh warning before expiry (55 minutes)
+        setTimeout(() => {
+            showNotification('This shared list will expire in 5 minutes!', 'warning');
+        }, 55 * 60 * 1000);
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            } else if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+                if (window.getSelection().toString() === '') {
+                    e.preventDefault();
+                    copyToClipboard();
+                }
+            }
+        });
+    </script>
 </body>
 </html>

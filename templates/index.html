@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shopping List</title>
+    <title>Shopping List - Smart Flyer Comparison</title>
+    <meta name="description" content="Compare flyer deals across multiple grocery stores and create smart shopping lists">
     <link rel="icon" type="image/png" href="../static/images/logo.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
@@ -14,71 +15,410 @@
         <div class="logo-container">
             <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Shopping List Logo" class="logo">
             <h1 class="app-title">Shopping List</h1>
-            <button id="update-data-btn" aria-label="Update Data">
+            <button id="update-data-btn" aria-label="Update Data" title="Update flyer data from all stores">
                 <i class="fa-solid fa-arrows-rotate"></i>
             </button>
+            <!-- Last updated indicator will be added here by JS -->
         </div>
         <div class="search-bar">
             <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            <input type="text" id="search-input" class="search-input" placeholder="Search flyers..." aria-label="Search Flyers">
+            <input
+                type="text"
+                id="search-input"
+                class="search-input"
+                placeholder="Search flyers... (Ctrl+K)"
+                aria-label="Search Flyers"
+                autocomplete="off"
+            >
         </div>
         <div class="header-actions">
-            <button id="dark-mode-toggle" aria-label="Toggle Dark Mode">
+            <button id="dark-mode-toggle" aria-label="Toggle Dark Mode" title="Switch between light and dark themes">
                 <i class="fa-solid fa-moon"></i>
             </button>
-            <button id="shopping-list-toggle" class="shopping-list-toggle" aria-label="Shopping List">
+            <button id="shopping-list-toggle" class="shopping-list-toggle" aria-label="Shopping List" title="Open shopping list (Ctrl+L)">
                 <i class="fa-solid fa-cart-shopping"></i>
                 <span id="cart-count" class="cart-count">0</span>
             </button>
         </div>
     </header>
 
+    <!-- Filter Panel (will be added by JavaScript) -->
+
+    <!-- Statistics Panel (will be added by JavaScript) -->
+
     <main id="main-container">
         <div class="tabs">
-            <div class="store-tabs-container"></div>
+            <div class="store-tabs-container">
+                <!-- Store tabs will be populated by JavaScript -->
+            </div>
             <div class="view-toggle">
-                <button id="grid-view-btn" class="active" aria-label="Grid View">
+                <button id="grid-view-btn" class="active" aria-label="Grid View" title="Switch to grid view">
                     <i class="fa-solid fa-table-cells"></i>
                 </button>
-                <button id="list-view-btn" aria-label="List View">
+                <button id="list-view-btn" aria-label="List View" title="Switch to compact list view">
                     <i class="fa-solid fa-list-ul"></i>
                 </button>
             </div>
         </div>
-        <div class="tab-content"></div>
-        <p id="status-message" style="display: none;"></p>
+        <div class="tab-content">
+            <!-- Flyer items will be populated here -->
+        </div>
+        <p id="status-message" style="display: none;" role="status" aria-live="polite"></p>
     </main>
 
     <aside id="shopping-list-sidebar">
         <div class="shopping-list-header">
             <h2>Shopping List</h2>
-            <button id="close-shopping-list" aria-label="Close Shopping List">&times;</button>
+            <button id="close-shopping-list" aria-label="Close Shopping List" title="Close shopping list">&times;</button>
         </div>
         <div id="shopping-list-container">
-            <ul id="shopping-list"></ul>
-            <p class="empty-list-message" style="display: none;">Your shopping list is empty.</p>
+            <ul id="shopping-list">
+                <!-- Shopping list items will be populated here -->
+            </ul>
+            <p class="empty-list-message" style="display: none;">
+                <i class="fa-solid fa-cart-shopping"></i><br>
+                Your shopping list is empty.<br>
+                <small>Add items from the flyers to get started!</small>
+            </p>
         </div>
         <div class="shopping-list-footer">
-            <button id="clear-list-btn">Clear List</button>
-            <button id="send-list-btn">Send List</button>
+            <button id="clear-list-btn" title="Remove all items from list">
+                <i class="fa-solid fa-trash"></i>
+                Clear List
+            </button>
+            <button id="send-list-btn" title="Generate shareable list">
+                <i class="fa-solid fa-share"></i>
+                Share List
+            </button>
         </div>
     </aside>
 
-    <div id="text-list-modal" class="modal hidden">
+    <!-- Text List Modal -->
+    <div id="text-list-modal" class="modal">
         <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2>Your Shopping List Text</h2>
-            <textarea id="text-list-area" readonly></textarea>
+            <span class="close-modal" title="Close modal">&times;</span>
+            <h2>
+                <i class="fa-solid fa-list"></i>
+                Your Shopping List
+            </h2>
+            <textarea
+                id="text-list-area"
+                readonly
+                aria-label="Shopping list text content"
+                placeholder="Your shopping list will appear here..."
+            ></textarea>
             <div id="qr-code-container" style="display: none;">
-                <img id="qr-code-image" alt="QR Code">
+                <h3>
+                    <i class="fa-solid fa-qrcode"></i>
+                    QR Code for Your List
+                </h3>
+                <p>Scan this QR code to view your shopping list on any device:</p>
+                <img id="qr-code-image" alt="QR Code for Shopping List">
+                <p><small>This QR code expires in 1 hour for security.</small></p>
             </div>
-            <button id="copy-text-btn">Copy to Clipboard</button>
-            <button id="generate-qr-btn">Generate QR Code</button>
+            <div class="modal-actions">
+                <button id="copy-text-btn" title="Copy list to clipboard">
+                    <i class="fa-solid fa-copy"></i>
+                    Copy to Clipboard
+                </button>
+                <button id="generate-qr-btn" title="Generate QR code for sharing">
+                    <i class="fa-solid fa-qrcode"></i>
+                    Generate QR Code
+                </button>
+            </div>
         </div>
     </div>
 
-    <div id="full-size-image-modal" class="hidden">
-        <img alt="Full Size Image">
+    <!-- Full Size Image Modal -->
+    <div id="full-size-image-modal" class="image-modal" style="display: none;">
+        <div class="image-modal-content">
+            <span class="close-image-modal" title="Close image">&times;</span>
+            <img alt="Full Size Product Image" class="full-size-image">
+        </div>
     </div>
+
+    <!-- Keyboard Shortcuts Help (Hidden by default) -->
+    <div id="shortcuts-help" class="shortcuts-help" style="display: none;">
+        <div class="shortcuts-content">
+            <h3>Keyboard Shortcuts</h3>
+            <div class="shortcut-list">
+                <div class="shortcut-item">
+                    <kbd>Ctrl</kbd> + <kbd>K</kbd>
+                    <span>Focus search</span>
+                </div>
+                <div class="shortcut-item">
+                    <kbd>Ctrl</kbd> + <kbd>L</kbd>
+                    <span>Toggle shopping list</span>
+                </div>
+                <div class="shortcut-item">
+                    <kbd>Esc</kbd>
+                    <span>Close modals</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Service Worker Registration -->
+    <script>
+        // Register service worker for offline functionality (if available)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(function(err) {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+
+    <!-- Additional Styles for Modal Actions -->
+    <style>
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .modal-actions button {
+            flex: 1;
+            min-width: 150px;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        #copy-text-btn {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        #copy-text-btn:hover {
+            background-color: #5a6268;
+        }
+
+        #generate-qr-btn {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        #generate-qr-btn:hover {
+            background-color: #0056b3;
+        }
+
+        #generate-qr-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .back-to-text-btn {
+            margin-top: 15px;
+            padding: 8px 16px;
+            background-color: var(--info-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .back-to-text-btn:hover {
+            background-color: #138496;
+        }
+
+        .image-modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .image-modal-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .close-image-modal {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            color: white;
+            font-size: 35px;
+            font-weight: bold;
+            cursor: pointer;
+            background: rgba(0,0,0,0.5);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+
+        .close-image-modal:hover {
+            background: rgba(0,0,0,0.8);
+        }
+
+        .full-size-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .shortcuts-help {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: var(--box-shadow);
+            z-index: 1000;
+            max-width: 250px;
+        }
+
+        .shortcuts-content h3 {
+            margin: 0 0 10px 0;
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+
+        .shortcut-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+
+        .shortcut-item kbd {
+            background: var(--background-color);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            padding: 2px 5px;
+            font-size: 0.7rem;
+            margin: 0 2px;
+        }
+
+        .shortcut-item span {
+            color: var(--text-secondary);
+        }
+
+        .empty-list-message {
+            text-align: center;
+            color: var(--text-secondary);
+            font-style: italic;
+            margin: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .empty-list-message i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
+            display: block;
+        }
+
+        .empty-list-message small {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        /* Responsive modal adjustments */
+        @media (max-width: 768px) {
+            .modal-content {
+                margin: 10px;
+                padding: 15px;
+                width: calc(100% - 20px);
+            }
+
+            .modal-actions {
+                flex-direction: column;
+            }
+
+            .modal-actions button {
+                min-width: auto;
+            }
+
+            #text-list-area {
+                height: 200px;
+            }
+
+            .shortcuts-help {
+                bottom: 10px;
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+        }
+
+        /* Loading button state */
+        button:disabled .loading-spinner {
+            display: inline-block;
+        }
+
+        button .loading-spinner {
+            display: none;
+        }
+
+        /* Improved accessibility */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Print styles */
+        @media print {
+            .modal, .filter-panel, .header-actions, .shopping-list-footer, .view-toggle {
+                display: none !important;
+            }
+
+            body {
+                grid-template-columns: 1fr !important;
+            }
+
+            #shopping-list-sidebar {
+                position: static !important;
+                transform: none !important;
+                box-shadow: none !important;
+                max-width: none !important;
+                width: 100% !important;
+            }
+        }
+    </style>
 </body>
 </html>
