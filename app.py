@@ -41,7 +41,7 @@ def load_flyer_data():
         return {}
 
 
-def get_last_updated():
+def get_last_updated_time():
     """Get the last modified time of the flyers.json file"""
     try:
         file_path = os.path.join(DATA_FOLDER, 'flyers.json')
@@ -198,7 +198,7 @@ def get_flyers():
 @app.route('/api/last-updated')
 def get_last_updated():
     """Return the last updated timestamp"""
-    last_updated = get_last_updated()
+    last_updated = get_last_updated_time()  # Call the helper function with different name
     if last_updated:
         return jsonify({
             'last_updated': last_updated.isoformat(),
