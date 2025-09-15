@@ -60,6 +60,7 @@
                 </button>
             </div>
         </div>
+
         <div class="tab-content">
             <!-- Flyer items will be populated here -->
         </div>
@@ -136,43 +137,6 @@
             <img alt="Full Size Product Image" class="full-size-image">
         </div>
     </div>
-
-    <!-- Keyboard Shortcuts Help (Hidden by default) -->
-    <div id="shortcuts-help" class="shortcuts-help" style="display: none;">
-        <div class="shortcuts-content">
-            <h3>Keyboard Shortcuts</h3>
-            <div class="shortcut-list">
-                <div class="shortcut-item">
-                    <kbd>Ctrl</kbd> + <kbd>K</kbd>
-                    <span>Focus search</span>
-                </div>
-                <div class="shortcut-item">
-                    <kbd>Ctrl</kbd> + <kbd>L</kbd>
-                    <span>Toggle shopping list</span>
-                </div>
-                <div class="shortcut-item">
-                    <kbd>Esc</kbd>
-                    <span>Close modals</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Service Worker Registration -->
-    <script>
-        // Register service worker for offline functionality (if available)
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(function(registration) {
-                        console.log('ServiceWorker registration successful');
-                    })
-                    .catch(function(err) {
-                        console.log('ServiceWorker registration failed: ', err);
-                    });
-            });
-        }
-    </script>
 
     <!-- Additional Styles for Modal Actions -->
     <style>
@@ -286,51 +250,6 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
 
-        .shortcuts-help {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: var(--box-shadow);
-            z-index: 1000;
-            max-width: 250px;
-        }
-
-        .shortcuts-content h3 {
-            margin: 0 0 10px 0;
-            font-size: 0.9rem;
-            color: var(--text-color);
-        }
-
-        .shortcut-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .shortcut-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.8rem;
-        }
-
-        .shortcut-item kbd {
-            background: var(--background-color);
-            border: 1px solid var(--border-color);
-            border-radius: 3px;
-            padding: 2px 5px;
-            font-size: 0.7rem;
-            margin: 0 2px;
-        }
-
-        .shortcut-item span {
-            color: var(--text-secondary);
-        }
-
         .empty-list-message {
             text-align: center;
             color: var(--text-secondary);
@@ -369,13 +288,6 @@
 
             #text-list-area {
                 height: 200px;
-            }
-
-            .shortcuts-help {
-                bottom: 10px;
-                right: 10px;
-                left: 10px;
-                max-width: none;
             }
         }
 

@@ -1,4 +1,4 @@
-// Enhanced main.js with filtering, statistics, and quality of life improvements
+// Enhanced main.js with filtering, statistics, dynamic sale badges, and quality of life improvements
 
 document.addEventListener('DOMContentLoaded', async () => {
     // DOM element references
@@ -26,7 +26,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     const generateQrCodeBtn = document.getElementById('generate-qr-btn');
     const qrCodeImage = document.getElementById('qr-code-image');
     const fullSizeImageModal = document.getElementById('full-size-image-modal');
-    const fullSizeImage = fullSizeImageModal.querySelector('img');
+    const fullSizeImage = fullSizeImageModal ? fullSizeImageModal.querySelector('img') : null;
+
+    // Add Statistics and Filters buttons to the view-toggle container
+    const viewToggleContainer = document.querySelector('.view-toggle');
+    if (viewToggleContainer) {
+        const statsButton = document.createElement('button');
+        statsButton.id = 'stats-toggle';
+        statsButton.className = 'stats-toggle';
+        statsButton.innerHTML = `<i class="fa-solid fa-chart-simple"></i> Statistics`;
+        viewToggleContainer.appendChild(statsButton);
+
+        const filtersButton = document.createElement('button');
+        filtersButton.id = 'filter-toggle-btn';
+        filtersButton.className = 'filter-toggle-btn';
+        filtersButton.innerHTML = `<i class="fa-solid fa-sliders"></i> Filters`;
+        viewToggleContainer.appendChild(filtersButton);
+    }
 
     // State variables
     let allFlyers = {};
@@ -40,14 +56,53 @@ document.addEventListener('DOMContentLoaded', async () => {
         min_price: null,
         max_price: null,
         min_savings: 0,
-        sort_by: 'name',
-        sort_order: 'asc'
+        sort_by: 'savings',
+        sort_order: 'desc'
     };
+
+    // Helper function to determine sale badge color tier
+    function getSaleBadgeTier(savingsPercentage) {
+        if (savingsPercentage >= 50) return 'extreme';
+        if (savingsPercentage >= 30) return 'high';
+        if (savingsPercentage >= 15) return 'medium';
+        if (savingsPercentage >= 5) return 'low';
+        return 'low'; // fallback
+    }
 
     // Function declarations (moved before setupEventListeners to avoid hoisting issues)
     const toggleShoppingList = () => {
-        document.body.classList.toggle('shopping-list-open');
+        console.log('Toggle shopping list called'); // Debug log
+        const body = document.body;
+        const sidebar = document.getElementById('shopping-list-sidebar');
+
+        if (body && sidebar) {
+            body.classList.toggle('shopping-list-open');
+            console.log('Shopping list toggled:', body.classList.contains('shopping-list-open')); // Debug log
+        } else {
+            console.error('Body or sidebar element not found');
+        }
     };
+
+    // ADD MISSING setActiveStore FUNCTION
+    function setActiveStore(store) {
+        // Update active store
+        activeStore = store;
+
+        // Update tab button states
+        const tabButtons = document.querySelectorAll('.tab-button');
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+
+        // Find and activate the clicked tab
+        const clickedTab = Array.from(tabButtons).find(btn =>
+            btn.textContent.includes(formatStoreName(store).split(' ')[0])
+        );
+        if (clickedTab) {
+            clickedTab.classList.add('active');
+        }
+
+        // Render flyers for the new active store
+        renderFlyers(store);
+    }
 
     function handleProductClick(e) {
         const btn = e.target.closest('.add-to-list-btn');
@@ -55,6 +110,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const item = JSON.parse(btn.dataset.item);
                 addItemToShoppingList(item);
+
+                // Add visual feedback
+                btn.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    btn.style.transform = '';
+                }, 150);
             } catch (error) {
                 console.error('Failed to parse item data:', error);
                 showNotification('Error adding item', 'error');
@@ -62,9 +123,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const img = e.target.closest('.image-container img');
-        if (img) {
+        if (img && fullSizeImageModal && fullSizeImage) {
             fullSizeImage.src = img.src;
             fullSizeImageModal.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
         }
     }
 
@@ -95,10 +157,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             toggleShoppingList();
         }
 
+        // Ctrl/Cmd + D to toggle dark mode
+        if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+            e.preventDefault();
+            darkModeToggle.click();
+        }
+
         // Escape to close modals
         if (e.key === 'Escape') {
             textListModal.style.display = 'none';
-            fullSizeImageModal.style.display = 'none';
+            if (fullSizeImageModal && fullSizeImageModal.style.display === 'flex') {
+                fullSizeImageModal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
         }
     }
 
@@ -108,27 +179,124 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function initializeApp() {
         setupDarkMode();
         setupViewMode();
-        setupEventListeners();
         createFilterPanel();
+        createStatsPanel();
+        setupEventListeners();
         await fetchShoppingList();
         await fetchFlyers();
         updateLastUpdatedIndicator();
 
         // Set up periodic updates
-        setInterval(updateLastUpdatedIndicator, 60000); // Update every minute
+        setInterval(updateLastUpdatedIndicator, 3600000); // Update every hour
+
+        // Add loading animation to initial load
+        document.body.classList.add('loaded');
+    }
+
+    // ADD MISSING createFilterPanel FUNCTION
+    function createFilterPanel() {
+        // Check if filter panel already exists
+        let filterPanel = document.getElementById('filter-panel');
+        if (filterPanel) return;
+
+        filterPanel = document.createElement('div');
+        filterPanel.className = 'filter-panel';
+        filterPanel.id = 'filter-panel';
+        filterPanel.innerHTML = `
+            <div class="filter-content" id="filter-content">
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        <label for="sale-filter">Sale Status</label>
+                        <select id="sale-filter">
+                            <option value="all">All Items</option>
+                            <option value="sale">On Sale Only</option>
+                            <option value="regular">Regular Price Only</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="min-price">Min Price ($)</label>
+                        <input type="number" id="min-price" min="0" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="filter-group">
+                        <label for="max-price">Max Price ($)</label>
+                        <input type="number" id="max-price" min="0" step="0.01" placeholder="No limit">
+                    </div>
+                    <div class="filter-group">
+                        <label for="min-savings">Min Savings (%)</label>
+                        <input type="number" id="min-savings" min="0" max="100" value="0" placeholder="0">
+                    </div>
+                    <div class="filter-group">
+                        <label for="sort-by">Sort By</label>
+                        <select id="sort-by">
+                            <option value="savings">Savings %</option>
+                            <option value="price">Price</option>
+                            <option value="name">Product Name</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="sort-order">Sort Order</label>
+                        <select id="sort-order">
+                            <option value="desc">High to Low</option>
+                            <option value="asc">Low to High</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-actions">
+                    <button class="apply-filters" onclick="applyFilters()">Apply Filters</button>
+                    <button class="clear-filters" onclick="clearFilters()">Clear All</button>
+                </div>
+            </div>
+        `;
+
+        // Insert after header
+        const header = document.querySelector('header');
+        header.insertAdjacentElement('afterend', filterPanel);
+
+        // Add event listeners for filter inputs
+        const filterInputs = filterPanel.querySelectorAll('select, input');
+        filterInputs.forEach(input => {
+            input.addEventListener('change', () => {
+                clearTimeout(filterDebounceTimer);
+                filterDebounceTimer = setTimeout(applyFilters, 300);
+            });
+        });
+    }
+
+    // ADD clearFilters FUNCTION
+    function clearFilters() {
+        // Reset all filter inputs
+        document.getElementById('sale-filter').value = 'all';
+        document.getElementById('min-price').value = '';
+        document.getElementById('max-price').value = '';
+        document.getElementById('min-savings').value = '0';
+        document.getElementById('sort-by').value = 'savings';
+        document.getElementById('sort-order').value = 'desc';
+
+        // Reset search input
+        searchInput.value = '';
+
+        // Apply cleared filters
+        applyFilters();
     }
 
     function setupDarkMode() {
         const isDarkMode = localStorage.getItem('darkMode') === 'true';
         if (isDarkMode) {
             document.documentElement.classList.add('dark-mode');
+            updateDarkModeIcon(true);
         }
 
         darkModeToggle.addEventListener('click', () => {
             document.documentElement.classList.toggle('dark-mode');
             const newDarkModeState = document.documentElement.classList.contains('dark-mode');
             localStorage.setItem('darkMode', newDarkModeState);
+            updateDarkModeIcon(newDarkModeState);
         });
+    }
+
+    function updateDarkModeIcon(isDark) {
+        const icon = darkModeToggle.querySelector('i');
+        icon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
     }
 
     function setupViewMode() {
@@ -145,6 +313,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const activeList = document.querySelector('.flyer-list.active');
             if (activeList) {
                 activeList.classList.remove('list-view');
+                activeList.classList.add('grid-view-transition');
+                setTimeout(() => activeList.classList.remove('grid-view-transition'), 300);
             }
         });
 
@@ -155,185 +325,170 @@ document.addEventListener('DOMContentLoaded', async () => {
             const activeList = document.querySelector('.flyer-list.active');
             if (activeList) {
                 activeList.classList.add('list-view');
+                activeList.classList.add('list-view-transition');
+                setTimeout(() => activeList.classList.remove('list-view-transition'), 300);
             }
         });
     }
 
     function setupEventListeners() {
-        // Shopping list toggle
-        shoppingListToggleBtn.addEventListener('click', toggleShoppingList);
-        closeShoppingListBtn.addEventListener('click', toggleShoppingList);
+        // Shopping list toggle - Make sure these elements exist
+        const shoppingListToggleBtn = document.getElementById('shopping-list-toggle');
+        const closeShoppingListBtn = document.getElementById('close-shopping-list');
 
-        // Search with debounce
-        searchInput.addEventListener('input', (e) => {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                currentFilters.search = e.target.value;
-                applyFilters();
-            }, 300);
-        });
+        if (shoppingListToggleBtn) {
+            shoppingListToggleBtn.addEventListener('click', toggleShoppingList);
+        } else {
+            console.error('Shopping list toggle button not found');
+        }
 
-        // Update data
-        updateDataBtn.addEventListener('click', updateData);
+        if (closeShoppingListBtn) {
+            closeShoppingListBtn.addEventListener('click', toggleShoppingList);
+        } else {
+            console.error('Close shopping list button not found');
+        }
+
+        // Search with debounce and enhanced feedback
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const searchIcon = document.querySelector('.search-icon');
+                if (searchIcon) {
+                    searchIcon.className = 'fa-solid fa-spinner fa-spin search-icon';
+                }
+
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    currentFilters.search = e.target.value;
+                    applyFilters();
+                    if (searchIcon) {
+                        searchIcon.className = 'fa-solid fa-magnifying-glass search-icon';
+                    }
+                }, 300);
+            });
+        }
+
+        // Update data with enhanced feedback
+        if (updateDataBtn) {
+            updateDataBtn.addEventListener('click', updateData);
+        }
 
         // Shopping list actions
-        clearListBtn.addEventListener('click', clearShoppingList);
-        sendListBtn.addEventListener('click', sendShoppingList);
+        if (clearListBtn) {
+            clearListBtn.addEventListener('click', clearShoppingList);
+        }
+        if (sendListBtn) {
+            sendListBtn.addEventListener('click', sendShoppingList);
+        }
 
         // Modal events
-        closeTextModalBtn.addEventListener('click', () => { textListModal.style.display = 'none'; });
-        copyTextBtn.addEventListener('click', copyTextToClipboard);
-        generateQrCodeBtn.addEventListener('click', generateAndDisplayQrCode);
+        if (closeTextModalBtn) {
+            closeTextModalBtn.addEventListener('click', () => {
+                textListModal.style.display = 'none';
+                document.body.style.overflow = '';
+            });
+        }
+        if (copyTextBtn) copyTextBtn.addEventListener('click', copyTextToClipboard);
+        if (generateQrCodeBtn) generateQrCodeBtn.addEventListener('click', generateAndDisplayQrCode);
 
         // Click outside modal to close
         window.addEventListener('click', (event) => {
-            if (event.target === textListModal) textListModal.style.display = 'none';
+            if (textListModal && event.target === textListModal) {
+                textListModal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+            if (fullSizeImageModal && event.target === fullSizeImageModal) {
+                fullSizeImageModal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
         });
 
         // Product interactions
-        tabContent.addEventListener('click', handleProductClick);
-        shoppingListUl.addEventListener('click', handleShoppingListClick);
-        fullSizeImageModal.addEventListener('click', () => {
-            fullSizeImageModal.style.display = 'none';
-        });
+        if (tabContent) {
+            tabContent.addEventListener('click', handleProductClick);
+        }
+        if (shoppingListUl) {
+            shoppingListUl.addEventListener('click', handleShoppingListClick);
+        }
 
         // Keyboard shortcuts
         document.addEventListener('keydown', handleKeyboardShortcuts);
-    }
 
-    function createFilterPanel() {
-        const filterPanel = document.createElement('div');
-        filterPanel.className = 'filter-panel';
-        filterPanel.innerHTML = `
-            <div class="filter-toggle">
-                <h3><i class="fa-solid fa-filter"></i> Filters & Sorting</h3>
-                <div>
-                    <button class="stats-toggle" id="stats-toggle">
-                        <i class="fa-solid fa-chart-simple"></i> Stats
-                    </button>
-                    <i class="fa-solid fa-chevron-down" id="filter-chevron"></i>
-                </div>
-            </div>
-            <div class="filter-content" id="filter-content">
-                <div class="filter-grid">
-                    <div class="filter-group">
-                        <label>Sale Status</label>
-                        <select id="sale-filter">
-                            <option value="all">All Items</option>
-                            <option value="on_sale">On Sale Only</option>
-                            <option value="not_on_sale">Regular Price Only</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label>Price Range</label>
-                        <div class="price-range-inputs">
-                            <input type="number" id="min-price" placeholder="Min $" min="0" step="0.01">
-                            <span>to</span>
-                            <input type="number" id="max-price" placeholder="Max $" min="0" step="0.01">
-                        </div>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label>Minimum Savings %</label>
-                        <input type="number" id="min-savings" placeholder="0" min="0" max="100" step="5">
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label>Sort By</label>
-                        <select id="sort-by">
-                            <option value="name">Name</option>
-                            <option value="price">Price</option>
-                            <option value="savings">Savings %</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <label>Sort Order</label>
-                        <select id="sort-order">
-                            <option value="asc">Ascending</option>
-                            <option value="desc">Descending</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="filter-actions">
-                    <button class="apply-filters" id="apply-filters">Apply Filters</button>
-                    <button class="clear-filters" id="clear-filters">Clear All</button>
-                </div>
-            </div>
-        `;
-
-        // Insert after header
-        document.body.insertBefore(filterPanel, document.getElementById('main-container'));
-
-        setupFilterEvents(filterPanel);
-        createStatsPanel();
-    }
-
-    function setupFilterEvents(filterPanel) {
-        const filterToggle = filterPanel.querySelector('.filter-toggle');
-        const filterContent = filterPanel.querySelector('.filter-content');
-        const filterChevron = filterPanel.querySelector('#filter-chevron');
-        const applyFiltersBtn = filterPanel.querySelector('#apply-filters');
-        const clearFiltersBtn = filterPanel.querySelector('#clear-filters');
-        const statsToggle = filterPanel.querySelector('#stats-toggle');
-
-        // Filter inputs
-        const saleFilter = filterPanel.querySelector('#sale-filter');
-        const minPrice = filterPanel.querySelector('#min-price');
-        const maxPrice = filterPanel.querySelector('#max-price');
-        const minSavings = filterPanel.querySelector('#min-savings');
-        const sortBy = filterPanel.querySelector('#sort-by');
-        const sortOrder = filterPanel.querySelector('#sort-order');
-
-        // Toggle filter panel
-        filterToggle.addEventListener('click', () => {
-            filterContent.classList.toggle('expanded');
-            filterChevron.style.transform = filterContent.classList.contains('expanded')
-                ? 'rotate(180deg)' : 'rotate(0deg)';
-        });
-
-        // Apply filters
-        applyFiltersBtn.addEventListener('click', applyFilters);
-
-        // Clear filters
-        clearFiltersBtn.addEventListener('click', () => {
-            saleFilter.value = 'all';
-            minPrice.value = '';
-            maxPrice.value = '';
-            minSavings.value = '';
-            sortBy.value = 'name';
-            sortOrder.value = 'asc';
-            searchInput.value = '';
-
-            currentFilters = {
-                search: '',
-                sale_filter: 'all',
-                min_price: null,
-                max_price: null,
-                min_savings: 0,
-                sort_by: 'name',
-                sort_order: 'asc'
-            };
-
-            applyFilters();
-        });
-
-        // Auto-apply filters with debounce
-        [saleFilter, minPrice, maxPrice, minSavings, sortBy, sortOrder].forEach(input => {
-            input.addEventListener('change', () => {
-                clearTimeout(filterDebounceTimer);
-                filterDebounceTimer = setTimeout(applyFilters, 300);
+        // Enhanced scroll behavior for tabs
+        const storeTabsContainer = document.querySelector('.store-tabs-container');
+        if (storeTabsContainer) {
+            storeTabsContainer.addEventListener('wheel', (e) => {
+                if (e.deltaY !== 0) {
+                    e.preventDefault();
+                    storeTabsContainer.scrollLeft += e.deltaY;
+                }
             });
-        });
+        }
 
-        // Stats toggle
-        statsToggle.addEventListener('click', toggleStats);
+        // Close image modal event
+        if (fullSizeImageModal) {
+            const closeImageModal = fullSizeImageModal.querySelector('.close-image-modal');
+            if (closeImageModal) {
+                closeImageModal.addEventListener('click', () => {
+                    fullSizeImageModal.style.display = 'none';
+                    document.body.style.overflow = '';
+                });
+            }
+        }
+
+        // Stats toggle event
+        const statsToggle = document.getElementById('stats-toggle');
+        if (statsToggle) {
+            statsToggle.addEventListener('click', toggleStats);
+        }
+
+        // Filter toggle event - Use event delegation to handle dynamically created elements
+        document.addEventListener('click', function(e) {
+            // Handle filter toggle button
+            if (e.target.matches('#filter-toggle-btn') || e.target.closest('#filter-toggle-btn')) {
+                e.preventDefault();
+                const filterContent = document.getElementById('filter-content');
+                const filterToggleBtn = document.getElementById('filter-toggle-btn');
+
+                if (filterContent && filterToggleBtn) {
+                    const isExpanded = filterContent.classList.contains('expanded');
+                    filterContent.classList.toggle('expanded');
+                    const icon = filterToggleBtn.querySelector('i');
+                    if (icon) {
+                        icon.className = !isExpanded ? 'fa-solid fa-sliders-up' : 'fa-solid fa-sliders';
+                    }
+                    filterToggleBtn.setAttribute('aria-expanded', !isExpanded);
+                }
+            }
+        });
+    }
+
+
+    function setupFilterToggle() {
+    // Use event delegation since the button might be created after this runs
+        document.addEventListener('click', function(e) {
+            if (e.target.matches('#filter-toggle-btn') || e.target.closest('#filter-toggle-btn')) {
+                const filterContent = document.getElementById('filter-content');
+                const filterToggleBtn = document.getElementById('filter-toggle-btn');
+
+                if (filterContent && filterToggleBtn) {
+                    const isExpanded = filterContent.classList.contains('expanded');
+                    filterContent.classList.toggle('expanded');
+                    const icon = filterToggleBtn.querySelector('i');
+                    if (icon) {
+                        icon.className = !isExpanded ? 'fa-solid fa-sliders-up' : 'fa-solid fa-sliders';
+                    }
+                    filterToggleBtn.setAttribute('aria-expanded', !isExpanded);
+                }
+            }
+        });
     }
 
     function createStatsPanel() {
-        const statsPanel = document.createElement('div');
+        // FIX: Ensure this only creates once (idempotent)
+        let statsPanel = document.getElementById('stats-panel');
+        if (statsPanel) return;  // Already exists
+
+        statsPanel = document.createElement('div');
         statsPanel.className = 'stats-panel';
         statsPanel.id = 'stats-panel';
         statsPanel.innerHTML = `
@@ -347,54 +502,102 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function toggleStats() {
-        const statsPanel = document.getElementById('stats-panel');
-        const isVisible = statsPanel.classList.contains('show');
+        let statsPanel = document.getElementById('stats-panel');  // FIX: Re-fetch in case
+        const statsGrid = document.getElementById('stats-grid');
+
+        // FIX: Defensive check - create if missing, then proceed
+        if (!statsPanel) {
+            createStatsPanel();
+            statsPanel = document.getElementById('stats-panel');
+            if (!statsPanel) {
+                showNotification('Failed to initialize stats panel', 'error');
+                return;
+            }
+        }
+
+        const isVisible = statsPanel.classList.contains('show');  // Now safe
 
         if (!isVisible) {
             try {
                 const response = await fetch('/api/statistics');
                 const stats = await response.json();
 
-                const statsGrid = document.getElementById('stats-grid');
+                // FIX: Fallback if allFlyers is empty or API fails
+                const fallbackStores = Object.keys(allFlyers).length || 0;
+
                 statsGrid.innerHTML = `
                     <div class="stat-item">
-                        <div class="stat-value">${stats.total_items}</div>
+                        <div class="stat-value">${stats.total_items || 0}</div>
                         <div class="stat-label">Total Items</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">${stats.items_on_sale}</div>
+                        <div class="stat-value">${stats.items_on_sale || 0}</div>
                         <div class="stat-label">Items on Sale</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">${stats.average_savings}%</div>
+                        <div class="stat-value">${stats.average_savings || 0}%</div>
                         <div class="stat-label">Avg Savings</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">${stats.price_ranges.under_5}</div>
+                        <div class="stat-value">${stats.price_ranges?.under_5 || 0}</div>
                         <div class="stat-label">Under $5</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">${stats.price_ranges['5_to_10']}</div>
+                        <div class="stat-value">${stats.price_ranges?.['5_to_10'] || 0}</div>
                         <div class="stat-label">$5 - $10</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">${stats.price_ranges['10_to_20']}</div>
+                        <div class="stat-value">${stats.price_ranges?.['10_to_20'] || 0}</div>
                         <div class="stat-label">$10 - $20</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">${stats.price_ranges.over_20}</div>
+                        <div class="stat-value">${stats.price_ranges?.over_20 || 0}</div>
                         <div class="stat-label">Over $20</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">${fallbackStores}</div>
+                        <div class="stat-label">Stores</div>
                     </div>
                 `;
 
                 statsPanel.classList.add('show');
+
+                // Animate stat values counting up
+                animateStatValues(statsGrid);
+
             } catch (error) {
                 console.error('Failed to fetch statistics:', error);
                 showNotification('Failed to load statistics', 'error');
+                // FIX: Show a fallback empty state
+                statsGrid.innerHTML = '<p>No stats available yet.</p>';
+                statsPanel.classList.add('show');
             }
         } else {
             statsPanel.classList.remove('show');
         }
+    }
+
+    function animateStatValues(statsGrid) {
+        const statValues = statsGrid.querySelectorAll('.stat-value');
+        statValues.forEach(statValue => {
+            const finalValue = statValue.textContent;
+            const numericValue = parseInt(finalValue.replace(/[^0-9]/g, ''));
+
+            if (!isNaN(numericValue)) {
+                let currentValue = 0;
+                const increment = Math.ceil(numericValue / 20);
+
+                const counter = setInterval(() => {
+                    currentValue += increment;
+                    if (currentValue >= numericValue) {
+                        statValue.textContent = finalValue;
+                        clearInterval(counter);
+                    } else {
+                        statValue.textContent = currentValue + finalValue.replace(/[0-9]/g, '');
+                    }
+                }, 50);
+            }
+        });
     }
 
     async function applyFilters() {
@@ -461,12 +664,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function renderTabs() {
-        let storeTabsContainer = document.querySelector('.store-tabs-container');
+        // Use the existing store tabs container from HTML
+        const storeTabsContainer = document.querySelector('.store-tabs-container');
+
+        // If for some reason it doesn't exist, create it (fallback)
         if (!storeTabsContainer) {
-            storeTabsContainer = document.createElement('div');
-            storeTabsContainer.classList.add('store-tabs-container');
-            tabsContainer.prepend(storeTabsContainer);
+            console.error('Store tabs container not found in HTML');
+            return;
         }
+
+        // Clear existing content
         storeTabsContainer.innerHTML = '';
 
         Object.keys(allFlyers).forEach((store, index) => {
@@ -474,23 +681,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             const tabButton = document.createElement('button');
             tabButton.classList.add('tab-button');
             tabButton.innerHTML = `
-                ${formatStoreName(store)}
+                <span>${formatStoreName(store)}</span>
                 <span class="store-count">${itemCount}</span>
             `;
-            tabButton.dataset.store = store;
-
-            if (store === activeStore || (!activeStore && index === 0)) {
+            tabButton.addEventListener('click', () => {
+                setActiveStore(store);
+            });
+            if (index === 0) {
                 tabButton.classList.add('active');
                 activeStore = store;
             }
-
-            tabButton.addEventListener('click', () => {
-                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                tabButton.classList.add('active');
-                activeStore = store;
-                renderFlyers(store);
-            });
-
             storeTabsContainer.appendChild(tabButton);
         });
     }
@@ -499,6 +699,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const lowerStore = store.toLowerCase();
         if (lowerStore === 'nofrills') return 'NO FRILLS';
         if (lowerStore === 'foodbasics') return 'FOOD BASICS';
+        if (lowerStore === 'tnt_supermarket') return 'T&T SUPERMARKET';
         return store.replace(/_/g, ' ').toUpperCase();
     }
 
@@ -506,6 +707,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         tabContent.innerHTML = '';
         const flyerList = document.createElement('ul');
         flyerList.classList.add('flyer-list', 'active');
+        flyerList.setAttribute('role', 'list');
 
         const currentViewMode = localStorage.getItem('viewMode') || 'grid';
         if (currentViewMode === 'list') {
@@ -520,42 +722,62 @@ document.addEventListener('DOMContentLoaded', async () => {
             noResults.innerHTML = `
                 <i class="fa-solid fa-search"></i>
                 <p>No items found for ${formatStoreName(store)} with current filters.</p>
+                <small>Try adjusting your search terms or filters.</small>
             `;
             tabContent.appendChild(noResults);
             return;
         }
 
         const fragment = document.createDocumentFragment();
-        items.forEach(item => {
-            item.id = `${store}-${item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+        items.forEach((item, index) => {
+            item.id = `${store}-${item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${index}`;
             const flyerItem = document.createElement('li');
             flyerItem.classList.add('flyer-item');
+            flyerItem.setAttribute('role', 'listitem');
 
             const { mainPriceHtml, strikethroughPriceHtml, detailsHtml } = priceRenderingLogic(item);
 
-            // Create sale badge if item is on sale
+            // Create enhanced sale badge with dynamic colors OR not on sale indicator
             let saleBadge = '';
             if (item.on_sale && item.savings_percentage > 0) {
-                saleBadge = `<div class="sale-badge savings-percentage">${item.savings_percentage}% OFF</div>`;
+                const tier = getSaleBadgeTier(item.savings_percentage);
+                const tierIcons = {
+                    low: 'fa-tag',
+                    medium: 'fa-star',
+                    high: 'fa-fire',
+                    extreme: 'fa-bolt'
+                };
+                saleBadge = `<div class="sale-badge" data-savings="${tier}">
+                    <i class="fa-solid ${tierIcons[tier]}"></i>
+                    ${item.savings_percentage}% OFF
+                </div>`;
             } else if (item.on_sale) {
-                saleBadge = `<div class="sale-badge">SALE</div>`;
+                saleBadge = `<div class="sale-badge" data-savings="low">
+                    <i class="fa-solid fa-tag"></i>
+                    SALE
+                </div>`;
+            } else {
+                // Not on sale indicator
+                saleBadge = `<div class="sale-badge" data-savings="none">
+                    <i class="fa-solid fa-times-circle"></i>
+                    NOT ON SALE
+                </div>`;
             }
 
+            // Updated HTML structure for proper list view support
             flyerItem.innerHTML = `
                 ${saleBadge}
                 <div class="image-container">
-                    <img src="${item.image_url || ''}" alt="${item.name || ''}" loading="lazy">
+                    <img src="${item.image_url || ''}" alt="${item.name || ''}" loading="lazy" onerror="this.style.display='none'">
                 </div>
                 <div class="item-info">
-                    <div class="item-details-wrapper">
-                        <h3>${item.name || ''}</h3>
-                        <div class="price-details-container">
-                            ${mainPriceHtml}
-                            ${strikethroughPriceHtml}
-                            ${detailsHtml}
-                        </div>
+                    <h3>${item.name || ''}</h3>
+                    <div class="price-details-container">
+                        ${mainPriceHtml}
+                        ${strikethroughPriceHtml}
+                        ${detailsHtml}
                     </div>
-                    <button class="add-to-list-btn" data-id="${item.id}" data-item='${JSON.stringify(item)}'>
+                    <button class="add-to-list-btn" data-id="${item.id}" data-item='${JSON.stringify(item)}' aria-label="Add ${item.name} to shopping list">
                         <i class="fa-solid fa-cart-plus"></i>
                         Add to List
                     </button>
@@ -566,6 +788,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         flyerList.appendChild(fragment);
         tabContent.appendChild(flyerList);
+
+        // Add staggered animation for items
+        const flyerItems = flyerList.querySelectorAll('.flyer-item');
+        flyerItems.forEach((item, index) => {
+            item.style.opacity = '0';
+            item.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                item.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                item.style.opacity = '1';
+                item.style.transform = 'translateY(0)';
+            }, index * 50);
+        });
     }
 
     function priceRenderingLogic(item) {
@@ -575,15 +809,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const hasSalePrice = item.price && item.price !== 'N/A';
         const hasOriginalPrice = item.original_price && item.original_price !== 'N/A';
-        const isOnSale = hasSalePrice && hasOriginalPrice && item.price !== item.original_price;
 
-        if (isOnSale) {
+        // Use item.on_sale flag for consistency
+        if (item.on_sale && hasSalePrice) {
             mainPriceHtml = `<p class="main-price sale-price">${item.price}</p>`;
-            strikethroughPriceHtml = `<p class="original-price-strikethrough">${item.original_price}</p>`;
-        } else if (hasSalePrice) {
-            mainPriceHtml = `<p class="main-price regular-price">${item.price}</p>`;
-        } else if (hasOriginalPrice) {
-            mainPriceHtml = `<p class="main-price regular-price">${item.original_price}</p>`;
+            // Only show a strikethrough price if it's different from the sale price
+            if (hasOriginalPrice && item.price !== item.original_price) {
+                strikethroughPriceHtml = `<p class="original-price-strikethrough">${item.original_price}</p>`;
+            }
+        } else {
+            // Logic for regular-priced items - make price red when not on sale
+            const priceToShow = hasSalePrice ? item.price : (hasOriginalPrice ? item.original_price : '');
+            if (priceToShow) {
+                mainPriceHtml = `<p class="main-price no-sale-price">${priceToShow}</p>`;
+            }
         }
 
         if (item.unit && item.unit !== 'N/A') {
@@ -628,9 +867,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     timeText = data.human_readable;
                 }
 
-                indicator.textContent = `Updated: ${timeText}`;
+                indicator.innerHTML = `<i class="fa-solid fa-clock"></i> Updated: ${timeText}`;
             } else {
-                indicator.textContent = 'Never updated';
+                indicator.innerHTML = '<i class="fa-solid fa-question"></i> Never updated';
             }
         } catch (error) {
             console.error('Failed to fetch last updated time:', error);
@@ -658,6 +897,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (shoppingList.length === 0) {
             if (emptyMessage) emptyMessage.style.display = 'block';
             cartCountSpan.textContent = 0;
+            cartCountSpan.style.display = 'none';
             return;
         } else {
             if (emptyMessage) emptyMessage.style.display = 'none';
@@ -677,6 +917,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             const storeHeader = document.createElement('h5');
             storeHeader.classList.add('store-header');
             storeHeader.textContent = formatStoreName(store);
+            storeHeader.style.cssText = `
+                margin: 20px 0 10px 0;
+                padding: 12px 16px;
+                background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+                color: white;
+                border-radius: var(--border-radius);
+                font-size: 0.9rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            `;
             shoppingListUl.appendChild(storeHeader);
 
             itemsByStore[store].forEach(item => {
@@ -687,7 +938,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 li.innerHTML = `
                     <div class="item-image-container">
-                        <img src="${item.image_url || ''}" alt="${item.name || ''}" class="item-image">
+                        <img src="${item.image_url || ''}" alt="${item.name || ''}" class="item-image" onerror="this.style.display='none'">
                     </div>
                     <div class="item-details">
                         <h4>${item.name || ''}</h4>
@@ -697,18 +948,28 @@ document.addEventListener('DOMContentLoaded', async () => {
                             ${detailsHtml}
                         </div>
                         <div class="quantity-control">
-                            <button class="qty-btn minus" data-id="${item.id}">-</button>
-                            <span>Quantity: ${item.quantity || 1}</span>
-                            <button class="qty-btn plus" data-id="${item.id}">+</button>
+                            <button class="qty-btn minus" data-id="${item.id}" aria-label="Decrease quantity">-</button>
+                            <span>Qty: ${item.quantity || 1}</span>
+                            <button class="qty-btn plus" data-id="${item.id}" aria-label="Increase quantity">+</button>
                         </div>
                     </div>
-                    <button class="remove-btn" data-id="${item.id}">&times;</button>
+                    <button class="remove-btn" data-id="${item.id}" aria-label="Remove ${item.name} from list">&times;</button>
                 `;
                 shoppingListUl.appendChild(li);
                 totalItems += parseInt(item.quantity, 10) || 1;
             });
         }
+
         cartCountSpan.textContent = totalItems;
+        cartCountSpan.style.display = totalItems > 0 ? 'flex' : 'none';
+
+        // Animate cart count update
+        if (totalItems > 0) {
+            cartCountSpan.style.animation = 'bounce-in 0.3s ease-out';
+            setTimeout(() => {
+                cartCountSpan.style.animation = '';
+            }, 300);
+        }
     }
 
     async function updateQuantity(itemId, delta) {
@@ -716,6 +977,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (itemIndex !== -1) {
             let newQty = (parseInt(shoppingList[itemIndex].quantity, 10) || 1) + delta;
             if (newQty < 1) newQty = 1;
+            if (newQty > 99) newQty = 99; // Set reasonable limit
+
             shoppingList[itemIndex].quantity = newQty;
 
             try {
@@ -728,10 +991,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (response.ok) {
                     renderShoppingList();
                     showNotification('Quantity updated', 'success');
+                } else {
+                    throw new Error('Server error');
                 }
             } catch (error) {
                 console.error('Failed to update quantity:', error);
                 showNotification('Failed to update quantity', 'error');
+                // Revert the change
+                shoppingList[itemIndex].quantity = (newQty - delta);
             }
         }
     }
@@ -740,10 +1007,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const existingItemIndex = shoppingList.findIndex(i => i.id === item.id);
             if (existingItemIndex !== -1) {
-                updateQuantity(item.id, 1);
+                await updateQuantity(item.id, 1);
                 return;
             } else {
                 item.quantity = 1;
+                item.store = activeStore; // Add store information
                 shoppingList.push(item);
             }
 
@@ -763,6 +1031,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             console.error('Failed to add item:', error);
             showNotification('Error adding item to list', 'error');
+            // Remove item if it was added optimistically
+            const index = shoppingList.findIndex(i => i.id === item.id);
+            if (index > -1) shoppingList.splice(index, 1);
         }
     }
 
@@ -808,7 +1079,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        let textContent = `Your Shopping List (Generated: ${new Date().toLocaleString()})\n\n`;
+        let textContent = `🛒 Your Shopping List (Generated: ${new Date().toLocaleString()})\n\n`;
         const itemsByStore = shoppingList.reduce((acc, item) => {
             const store = item.store || 'Uncategorized';
             if (!acc[store]) acc[store] = [];
@@ -820,10 +1091,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         let totalValue = 0;
 
         for (const store in itemsByStore) {
-            textContent += `--- ${formatStoreName(store)} ---\n`;
+            textContent += `🏪 ${formatStoreName(store)}\n`;
+            textContent += '─'.repeat(30) + '\n';
+
             itemsByStore[store].forEach(item => {
                 const quantity = parseInt(item.quantity, 10) || 1;
-                let itemText = `- (x${quantity}) ${item.name}`;
+                let itemText = `• (×${quantity}) ${item.name}`;
 
                 const { mainPriceHtml, strikethroughPriceHtml, detailsHtml } = priceRenderingLogic(item);
                 let priceInfo = [mainPriceHtml, strikethroughPriceHtml, detailsHtml]
@@ -836,7 +1109,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 if (item.on_sale && item.savings_percentage) {
-                    itemText += ` (${item.savings_percentage}% OFF!)`;
+                    itemText += ` 🔥 (${item.savings_percentage}% OFF!)`;
                 }
 
                 textContent += `${itemText}\n`;
@@ -850,12 +1123,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             textContent += '\n';
         }
 
-        textContent += `SUMMARY:\n`;
+        textContent += '📊 SUMMARY\n';
+        textContent += '─'.repeat(30) + '\n';
         textContent += `Total Items: ${totalItems}\n`;
         if (totalValue > 0) {
             textContent += `Estimated Total: ${totalValue.toFixed(2)}\n`;
         }
-        textContent += `\nGenerated by Shopping List App`;
+        textContent += `\n✨ Generated by Shopping List App`;
 
         textListArea.value = textContent;
         textListModal.style.display = 'flex';
@@ -863,16 +1137,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         qrCodeContainer.style.display = 'none';
         copyTextBtn.style.display = 'block';
         generateQrCodeBtn.style.display = 'block';
+        document.body.style.overflow = 'hidden';
     }
 
-    function copyTextToClipboard() {
-        textListArea.select();
-        document.execCommand('copy');
-        showNotification('Copied to clipboard!', 'success');
+    async function copyTextToClipboard() {
+        try {
+            await navigator.clipboard.writeText(textListArea.value);
+            showNotification('Copied to clipboard!', 'success');
+
+            // Visual feedback
+            copyTextBtn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+            setTimeout(() => {
+                copyTextBtn.innerHTML = '<i class="fa-solid fa-copy"></i> Copy to Clipboard';
+            }, 2000);
+
+        } catch (error) {
+            console.error('Failed to copy text:', error);
+            showNotification('Failed to copy. Please select and copy manually.', 'error');
+        }
     }
 
     async function generateAndDisplayQrCode() {
-        generateQrCodeBtn.textContent = 'Generating...';
+        const originalText = generateQrCodeBtn.innerHTML;
+        generateQrCodeBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
         generateQrCodeBtn.disabled = true;
 
         try {
@@ -899,14 +1186,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error('Error generating QR code:', error);
             showNotification('Failed to generate QR code', 'error');
         } finally {
-            generateQrCodeBtn.textContent = 'Generate QR Code';
+            generateQrCodeBtn.innerHTML = originalText;
             generateQrCodeBtn.disabled = false;
         }
     }
 
     async function updateData() {
+        const originalText = updateDataBtn.innerHTML;
         updateDataBtn.disabled = true;
-        updateDataBtn.innerHTML = '<div class="loading-spinner"></div>Updating...';
+        updateDataBtn.innerHTML = '<div class="loading-spinner"></div>';
 
         try {
             const response = await fetch('/api/update-data', { method: 'POST' });
@@ -924,60 +1212,156 @@ document.addEventListener('DOMContentLoaded', async () => {
             showNotification(`Error updating data: ${error.message}`, 'error');
         } finally {
             updateDataBtn.disabled = false;
-            updateDataBtn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i>';
+            updateDataBtn.innerHTML = originalText;
         }
     }
 
     function showNotification(message, type = 'info') {
-        // Create notification element if it doesn't exist
-        let notification = document.querySelector('.notification');
-        if (!notification) {
-            notification = document.createElement('div');
-            notification.className = 'notification';
-            document.body.appendChild(notification);
+        // Remove existing notifications
+        const existingNotifications = document.querySelectorAll('.notification');
+        existingNotifications.forEach(notification => notification.remove());
 
-            // Add notification styles
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <i class="fa-solid ${getNotificationIcon(type)}"></i>
+                <span>${message}</span>
+            </div>
+            <button class="notification-close" onclick="this.parentElement.remove()">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        `;
+
+        // Add notification styles if they don't exist
+        if (!document.getElementById('notification-styles')) {
             const style = document.createElement('style');
+            style.id = 'notification-styles';
             style.textContent = `
                 .notification {
                     position: fixed;
-                    top: 20px;
+                    top: 100px;
                     right: 20px;
-                    padding: 12px 20px;
-                    border-radius: 6px;
+                    padding: 16px 20px;
+                    border-radius: var(--border-radius-lg);
                     color: white;
-                    font-weight: 500;
+                    font-weight: 600;
                     z-index: 10000;
                     transform: translateX(400px);
-                    transition: transform 0.3s ease;
-                    max-width: 300px;
+                    transition: transform var(--transition-slow);
+                    max-width: 350px;
+                    backdrop-filter: blur(16px);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    box-shadow: var(--box-shadow-xl);
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 12px;
                 }
-                .notification.success { background-color: var(--accent-color); }
-                .notification.error { background-color: var(--danger-color); }
-                .notification.warning { background-color: var(--warning-color); color: var(--text-color); }
-                .notification.info { background-color: var(--info-color); }
+                .notification.success { 
+                    background: linear-gradient(135deg, var(--success-color), var(--success-hover));
+                }
+                .notification.error { 
+                    background: linear-gradient(135deg, var(--danger-color), var(--danger-hover));
+                }
+                .notification.warning { 
+                    background: linear-gradient(135deg, var(--warning-color), var(--warning-hover));
+                    color: var(--text-color);
+                }
+                .notification.info { 
+                    background: linear-gradient(135deg, var(--info-color), var(--info-hover));
+                }
                 .notification.show { transform: translateX(0); }
+                .notification-content {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    flex: 1;
+                }
+                .notification-content i {
+                    font-size: 1.25rem;
+                    opacity: 0.9;
+                }
+                .notification-close {
+                    background: rgba(255, 255, 255, 0.2);
+                    border: none;
+                    color: inherit;
+                    cursor: pointer;
+                    padding: 8px;
+                    border-radius: var(--border-radius);
+                    transition: background var(--transition-fast);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .notification-close:hover {
+                    background: rgba(255, 255, 255, 0.3);
+                }
+                @media (max-width: 768px) {
+                    .notification {
+                        top: 90px;
+                        right: 16px;
+                        left: 16px;
+                        max-width: none;
+                        transform: translateY(-100px);
+                    }
+                    .notification.show { transform: translateY(0); }
+                }
             `;
             document.head.appendChild(style);
         }
 
-        notification.textContent = message;
-        notification.className = `notification ${type}`;
+        document.body.appendChild(notification);
 
-        // Show notification
-        setTimeout(() => notification.classList.add('show'), 100);
+        // Show notification with animation
+        requestAnimationFrame(() => {
+            notification.classList.add('show');
+        });
 
-        // Hide notification after 3 seconds
+        // Auto-hide notification after 4 seconds
         setTimeout(() => {
-            notification.classList.remove('show');
-        }, 3000);
+            if (notification.parentNode) {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            }
+        }, 4000);
+    }
+
+    function getNotificationIcon(type) {
+        const icons = {
+            success: 'fa-check-circle',
+            error: 'fa-exclamation-circle',
+            warning: 'fa-exclamation-triangle',
+            info: 'fa-info-circle'
+        };
+        return icons[type] || icons.info;
     }
 
     // Create back to text button for QR modal
     const backToTextBtn = document.createElement('button');
-    backToTextBtn.textContent = 'Back to Text';
+    backToTextBtn.textContent = '← Back to Text';
     backToTextBtn.className = 'back-to-text-btn';
     backToTextBtn.style.display = 'none';
+    backToTextBtn.style.cssText = `
+        margin-top: 20px;
+        padding: 12px 24px;
+        background: var(--secondary-color);
+        color: white;
+        border: none;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        font-weight: 600;
+        transition: all var(--transition-normal);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    `;
     backToTextBtn.onclick = () => {
         textListArea.style.display = 'block';
         copyTextBtn.style.display = 'block';
@@ -985,5 +1369,104 @@ document.addEventListener('DOMContentLoaded', async () => {
         qrCodeContainer.style.display = 'none';
         backToTextBtn.style.display = 'none';
     };
-    qrCodeContainer.appendChild(backToTextBtn);
+    if (qrCodeContainer) {
+        qrCodeContainer.appendChild(backToTextBtn);
+    }
+
+    // Enhanced keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        // Tab navigation enhancement
+        if (e.key === 'Tab') {
+            const focusableElements = document.querySelectorAll(
+                'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            );
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+
+            if (e.shiftKey && document.activeElement === firstElement) {
+                e.preventDefault();
+                lastElement.focus();
+            } else if (!e.shiftKey && document.activeElement === lastElement) {
+                e.preventDefault();
+                firstElement.focus();
+            }
+        }
+    });
+
+    // Performance optimization: Intersection Observer for lazy loading
+    if ('IntersectionObserver' in window) {
+        const imageObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    if (img.dataset.src) {
+                        img.src = img.dataset.src;
+                        img.removeAttribute('data-src');
+                        imageObserver.unobserve(img);
+                    }
+                }
+            });
+        }, {
+            rootMargin: '50px'
+        });
+
+        // Apply to images when they're rendered
+        const observeImages = () => {
+            document.querySelectorAll('img[data-src]').forEach(img => {
+                imageObserver.observe(img);
+            });
+        };
+
+        // Call initially and set up mutation observer for dynamic content
+        observeImages();
+
+        const mutationObserver = new MutationObserver(observeImages);
+        mutationObserver.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+
+    // Add smooth scrolling behavior
+    document.documentElement.style.scrollBehavior = 'smooth';
+
+    // Service Worker registration for offline support
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', async () => {
+            try {
+                const registration = await navigator.serviceWorker.register('/sw.js');
+                console.log('ServiceWorker registered successfully:', registration.scope);
+            } catch (error) {
+                console.log('ServiceWorker registration failed:', error);
+            }
+        });
+    }
+
+    // Add loading class to body when fully loaded
+    window.addEventListener('load', () => {
+        document.body.classList.add('loaded');
+    });
+
+    // Handle online/offline states
+    window.addEventListener('online', () => {
+        showNotification('Connection restored', 'success');
+    });
+
+    window.addEventListener('offline', () => {
+        showNotification('You are offline. Some features may not work.', 'warning');
+    });
+
+    // Add performance monitoring
+    if ('performance' in window) {
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const perfData = performance.getEntriesByType('navigation')[0];
+                console.log('Page Load Time:', Math.round(perfData.loadEventEnd - perfData.loadEventStart), 'ms');
+            }, 0);
+        });
+    }
+
+    // Make functions globally available for inline onclick handlers
+    window.applyFilters = applyFilters;
+    window.clearFilters = clearFilters;
 });

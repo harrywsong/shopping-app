@@ -151,6 +151,9 @@ def get_flyers():
     sort_by = request.args.get('sort_by', 'name')  # name, price, savings
     sort_order = request.args.get('sort_order', 'asc')  # asc, desc
 
+    # NEW: Add store filter
+    store_filter = request.args.get('store')
+
     filtered_data = {
         "galleria": [],
         "tnt_supermarket": [],
@@ -191,6 +194,14 @@ def get_flyers():
             filtered_items.sort(key=lambda x: x.get('name', '').lower(), reverse=(sort_order == 'desc'))
 
         filtered_data[store] = filtered_items
+
+    # NEW: Apply store filter after per-store filtering/sorting
+    if store_filter and store_filter != 'all':
+        if store_filter in filtered_data:
+            filtered_data = {store_filter: filtered_data[store_filter]}
+        else:
+            filtered_data = {}
+    # else: keep all stores for 'all' or no filter
 
     return jsonify(filtered_data)
 

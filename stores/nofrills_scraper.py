@@ -38,7 +38,7 @@ def scrape_single_page(driver, page_url):
 
     # Accept cookies if present
     try:
-        cookie_accept = WebDriverWait(driver, 5).until(
+        cookie_accept = WebDriverWait(driver, 2).until(
             EC.element_to_be_clickable((By.ID, 'onetrust-accept-btn-handler')))
         cookie_accept.click()
         logging.info("Accepted cookies")
@@ -48,7 +48,7 @@ def scrape_single_page(driver, page_url):
 
     # Wait for products
     try:
-        WebDriverWait(driver, 15).until(
+        WebDriverWait(driver, 2).until(
             EC.presence_of_element_located((By.CSS_SELECTOR,
                                             'div[data-testid="product-tile"], div.product-tile, div.css-yyn1h'))
         )
