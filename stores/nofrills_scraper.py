@@ -151,20 +151,19 @@ def scrape_single_page(driver, page_url):
     return page_items
 
 def scrape_nofrills_flyer(driver, flyers_data):
-    base_url = "https://www.nofrills.ca/en/deals/flyer"
+    base_url = "https://www.nofrills.ca/en/collection/deals-centre-value?icid=gr_more-offers-low-prices_hottest-flyer-deals_menutile_3_c"
     max_pages = 50
     items_per_page = {}
-    previous_page_items = set()  # To detect duplicates for stopping
+    previous_page_items = set()
 
     try:
         for page_num in range(1, max_pages + 1):
-            page_url = f"{base_url}?page={page_num}" if page_num > 1 else base_url
+            page_url = f"{base_url}&page={page_num}" if page_num > 1 else base_url
             logging.info(f"Scraping page {page_num}...")
 
             page_items = scrape_single_page(driver, page_url)
             items_per_page[page_num] = len(page_items)
 
-            # Check for duplicates or empty
             current_items_set = set(item['name'] for item in page_items if item['name'])
             if len(page_items) == 0 or current_items_set == previous_page_items:
                 logging.info(f"No new items on page {page_num}, stopping pagination.")
@@ -172,7 +171,7 @@ def scrape_nofrills_flyer(driver, flyers_data):
             previous_page_items = current_items_set
 
             flyers_data.extend(page_items)
-            time.sleep(1)  # Increased delay for stability
+            time.sleep(1)
 
     except Exception as e:
         logging.error(f"Error during pagination: {str(e)}")
